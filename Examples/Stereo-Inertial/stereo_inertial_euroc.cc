@@ -273,17 +273,18 @@ int main(int argc, char **argv)
 
 
     // Save camera trajectory
+    double time_scale = 1.0;
     if (bFileName)
     {
         const string kf_file =  "kf_" + string(argv[argc-1]) + ".txt";
         const string f_file =  "f_" + string(argv[argc-1]) + ".txt";
-        SLAM.SaveTrajectoryEuRoC(f_file);
-        SLAM.SaveKeyFrameTrajectoryEuRoC(kf_file);
+        SLAM.SaveTrajectoryEuRoC(f_file, time_scale);
+        SLAM.SaveKeyFrameTrajectoryEuRoC(kf_file, time_scale);
     }
     else
     {
-        SLAM.SaveTrajectoryEuRoC("CameraTrajectory.txt");
-        SLAM.SaveKeyFrameTrajectoryEuRoC("KeyFrameTrajectory.txt");
+        SLAM.SaveTrajectoryEuRoC("CameraTrajectory.txt", time_scale);
+        SLAM.SaveKeyFrameTrajectoryEuRoC("KeyFrameTrajectory.txt", time_scale);
     }
 
     return 0;

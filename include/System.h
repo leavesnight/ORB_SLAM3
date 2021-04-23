@@ -147,8 +147,8 @@ public:
     // See format details at: http://vision.in.tum.de/data/datasets/rgbd-dataset
     void SaveKeyFrameTrajectoryTUM(const string &filename);
 
-    void SaveTrajectoryEuRoC(const string &filename);
-    void SaveKeyFrameTrajectoryEuRoC(const string &filename);
+    void SaveTrajectoryEuRoC(const string &filename, double time_scale = 1e9);
+    void SaveKeyFrameTrajectoryEuRoC(const string &filename, double time_scale = 1e9);
 
     // Save camera trajectory in the KITTI dataset format.
     // Only for stereo and RGB-D. This method does not work for monocular.
