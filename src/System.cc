@@ -408,7 +408,7 @@ void System::Shutdown()
 
 
 
-void System::SaveTrajectoryTUM(const string &filename)
+void System::SaveTrajectoryTUM(const string &filename, const bool imu_info)
 {
     cout << endl << "Saving camera trajectory to " << filename << " ..." << endl;
 //    if(mSensor==MONOCULAR)
@@ -462,7 +462,14 @@ void System::SaveTrajectoryTUM(const string &filename)
 
         vector<float> q = Converter::toQuaternion(Rwc);
 
-        f << setprecision(6) << *lT << " " <<  setprecision(9) << twc.at<float>(0) << " " << twc.at<float>(1) << " " << twc.at<float>(2) << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
+        f << setprecision(6) << *lT << " " <<  setprecision(9) << twc.at<float>(0) << " " << twc.at<float>(1) << " " << twc.at<float>(2) << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3];
+        if (imu_info) {
+            cv::Mat bg = pKF->GetGyroBias();
+            f << " " << bg.at<float>(0) << " " << bg.at<float>(1) << " " << bg.at<float>(2);
+            cv::Mat ba = pKF->GetAccBias();
+            f << " " << ba.at<float>(0) << " " << ba.at<float>(1) << " " << ba.at<float>(2);
+        }
+        f << endl;
     }
     f.close();
     // cout << endl << "trajectory saved!" << endl;

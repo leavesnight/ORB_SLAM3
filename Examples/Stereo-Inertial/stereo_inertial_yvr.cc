@@ -229,6 +229,7 @@ int main(int argc, char **argv)
 //    SLAM.SaveKeyFrameTrajectoryEuRoC("KeyFrameTrajectory.txt", 1.0);
     SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
     SLAM.SaveTrajectoryTUM("CameraTrajectory.txt");
+    SLAM.SaveTrajectoryTUM("CameraTrajectoryIMU.txt", 1);
 
     return 0;
 }
