@@ -93,6 +93,18 @@ int main(int argc, char **argv)
         LoadIMU(pathImu, vTimestampsImu[seq], vAcc[seq], vGyro[seq]);
         cout << "LOADED!" << endl;
 
+//#define TRANS_IMU2TXT
+#ifdef TRANS_IMU2TXT
+        ofstream fout("./"+to_string(seq)+".txt");
+        for (int i =0; i < vTimestampsImu[seq].size();++i) {
+          if (vAcc[seq].size()<=i) break;
+          if (vGyro[seq].size()<=i) break;
+          fout << (unsigned long)(vTimestampsImu[seq][i]*1e9) << " "<< vAcc[seq][i].x << " " << vAcc[seq][i].y<<" "<<vAcc[seq][i].z<<" "<<
+            vGyro[seq][i].x<<" "<<vGyro[seq][i].y<<" "<<vGyro[seq][i].z<<endl;
+        }
+        fout.close();
+#endif
+
         nImages[seq] = vstrImageLeft[seq].size();
         tot_images += nImages[seq];
         nImu[seq] = vTimestampsImu[seq].size();
@@ -361,9 +373,19 @@ void LoadIMU(const vector<string> &strImuPath, vector<double> &vTimeStamps, vect
         keystr[kStrEnd] = "' index";
         if (!GetFloatArray(s, keystr, last_pos, ret_vals)) {
             CV_Assert(1 == ret_vals.size());
-            CV_Assert(vTimeStamps.size() > id_acc);
+            if (vTimeStamps.size() <= id_acc) {
+              break;
+            }
             CV_Assert(vTimeStamps[id_acc++] == ret_vals[0]/1e9);
             ret_vals.clear();
         }
+        if (vTimeStamps.size() <= id_acc) {
+          vAcc.resize(vTimeStamps.size());
+          break;
+        }
+    }
+    if (vAcc.size() < vTimeStamps.size()) {
+      vTimeStamps.resize(vAcc.size());
+      vGyro.resize(vAcc.size());
     }
 }
