@@ -1698,7 +1698,8 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         }
     }
     num_fixedKF = lFixedCameras.size() + num_fixedKF;
-    if(num_fixedKF < 2)
+    // old ORB2 don't use this
+    if(0 && num_fixedKF < 2)
     {
         list<KeyFrame*>::iterator lit=lLocalKeyFrames.begin();
         int lowerId = pKF->mnId;
@@ -1751,8 +1752,9 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     g2o::BlockSolver_6_3 * solver_ptr = new g2o::BlockSolver_6_3(linearSolver);
 
     g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
-    if (pMap->IsInertial())
-        solver->setUserLambdaInit(100.0);
+    //old ORB2 don't use this
+//    if (pMap->IsInertial())
+//        solver->setUserLambdaInit(100.0);
 
     optimizer.setAlgorithm(solver);
     optimizer.setVerbose(false);

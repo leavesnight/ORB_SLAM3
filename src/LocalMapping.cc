@@ -774,7 +774,7 @@ void LocalMapping::SearchInNeighbors()
     // Extend to some second neighbors if abort is not requested
     for(int i=0, imax=vpTargetKFs.size(); i<imax; i++)
     {
-        const vector<KeyFrame*> vpSecondNeighKFs = vpTargetKFs[i]->GetBestCovisibilityKeyFrames(20);
+        const vector<KeyFrame*> vpSecondNeighKFs = vpTargetKFs[i]->GetBestCovisibilityKeyFrames(5);//20
         for(vector<KeyFrame*>::const_iterator vit2=vpSecondNeighKFs.begin(), vend2=vpSecondNeighKFs.end(); vit2!=vend2; vit2++)
         {
             KeyFrame* pKFi2 = *vit2;
@@ -783,8 +783,9 @@ void LocalMapping::SearchInNeighbors()
             vpTargetKFs.push_back(pKFi2);
             pKFi2->mnFuseTargetForKF=mpCurrentKeyFrame->mnId;
         }
-        if (mbAbortBA)
-            break;
+        //old ORB2 don't have this
+//        if (mbAbortBA)
+//            break;
     }
 
     // Extend to temporal neighbors
@@ -815,8 +816,9 @@ void LocalMapping::SearchInNeighbors()
         if(pKFi->NLeft != -1) matcher.Fuse(pKFi,vpMapPointMatches,3.0,true);
     }
 
-    if (mbAbortBA)
-        return;
+    //old ORB2 don't have this
+//    if (mbAbortBA)
+//        return;
 
     // Search matches by projection from target KFs in current KF
     vector<MapPoint*> vpFuseCandidates;
@@ -988,13 +990,14 @@ void LocalMapping::KeyFrameCulling()
     mpCurrentKeyFrame->UpdateBestCovisibles();
     vector<KeyFrame*> vpLocalKeyFrames = mpCurrentKeyFrame->GetVectorCovisibleKeyFrames();
 
-    float redundant_th;
-    if(!mbInertial)
-        redundant_th = 0.9;
-    else if (mbMonocular)
-        redundant_th = 0.9;
-    else
-        redundant_th = 0.5;
+    float redundant_th = 0.9;
+    // old ORB2 don't use this
+//    if(!mbInertial)
+//        redundant_th = 0.9;
+//    else if (mbMonocular)
+//        redundant_th = 0.9;
+//    else
+//        redundant_th = 0.5;
 
     const bool bInitImu = mpAtlas->isImuInitialized();
     int count=0;
@@ -1073,11 +1076,12 @@ void LocalMapping::KeyFrameCulling()
                             if(scaleLeveli<=scaleLevel+1)
                             {
                                 nObs++;
-                                if(nObs>thObs)
-                                    break;
+                                if(nObs>=thObs) break;//old ORB2 used
+                                //if(nObs>thObs) break;
                             }
                         }
-                        if(nObs>thObs)
+                        if (nObs >= thObs) //old ORB2 used
+                        //if(nObs>thObs)
                         {
                             nRedundantObservations++;
                         }
@@ -1126,10 +1130,11 @@ void LocalMapping::KeyFrameCulling()
                 pKF->SetBadFlag();
             }
         }
-        if((count > 20 && mbAbortBA) || count>100)
-        {
-            break;
-        }
+        //old ORB2 don't have this
+//        if((count > 20 && mbAbortBA) || count>100)
+//        {
+//            break;
+//        }
     }
 }
 

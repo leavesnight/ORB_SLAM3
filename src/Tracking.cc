@@ -2729,7 +2729,8 @@ bool Tracking::TrackWithMotionModel()
     // Project points seen in previous frame
     int th;
 
-    if(mSensor==System::STEREO)
+    // zzh add mSensor == IMU_STEREO here
+    if(mSensor==System::STEREO || mSensor == System::IMU_STEREO)
         th=7;
     else
         th=15;
@@ -2921,15 +2922,16 @@ bool Tracking::TrackLocalMap()
         else
             return true;
     }
-    else if (mSensor == System::IMU_STEREO)
-    {
-        if(mnMatchesInliers<15)
-        {
-            return false;
-        }
-        else
-            return true;
-    }
+    //old ORB2 don't use this
+//    else if (mSensor == System::IMU_STEREO)
+//    {
+//        if(mnMatchesInliers<15)
+//        {
+//            return false;
+//        }
+//        else
+//            return true;
+//    }
     else
     {
         if(mnMatchesInliers<30)
@@ -3266,11 +3268,12 @@ void Tracking::SearchLocalPoints()
                 th=2;
             else
                 th=3;
-        }
-        else if(!mpAtlas->isImuInitialized() && (mSensor==System::IMU_MONOCULAR || mSensor==System::IMU_STEREO))
-        {
-            th=10;
-        }
+        } // delete useless !mpAtlas->isImuInitialized()
+        // old ORB2 don't use this
+//        else if((mSensor==System::IMU_MONOCULAR || mSensor==System::IMU_STEREO))
+//        {
+//            th=10;
+//        }
 
         // If the camera has been relocalised recently, perform a coarser search
         if(mCurrentFrame.mnId<mnLastRelocFrameId+2)
