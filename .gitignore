@@ -55,3 +55,4 @@ cmake-build-release/
 
 .idea/
 Examples/Stereo-Inertial/CameraTrajectoryIMU.txt
+Examples/Stereo-Inertial/CameraTrajectoryCamPoseIMUBias.txt

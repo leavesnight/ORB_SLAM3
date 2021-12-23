@@ -72,10 +72,10 @@ namespace ORB_SLAM3 {
 
         size_t size(){return mvParameters.size();}
 
-        virtual bool matchAndtriangulate(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, GeometricCamera* pOther,
-                                 cv::Mat& Tcw1, cv::Mat& Tcw2,
-                                 const float sigmaLevel1, const float sigmaLevel2,
-                                 cv::Mat& x3Dtriangulated) = 0;
+//        virtual bool matchAndtriangulate(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, GeometricCamera* pOther,
+//                                 cv::Mat& Tcw1, cv::Mat& Tcw2,
+//                                 const float sigmaLevel1, const float sigmaLevel2,
+//                                 cv::Mat& x3Dtriangulated) = 0;
 
         unsigned int GetId() { return mnId; }
 

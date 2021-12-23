@@ -86,15 +86,15 @@ namespace ORB_SLAM3 {
         bool epipolarConstrain_(GeometricCamera* pCamera2, const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, const cv::Matx33f& R12, const cv::Matx31f& t12, const float sigmaLevel, const float unc);
 
 
-        float TriangulateMatches(GeometricCamera* pCamera2, const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, const cv::Mat& R12, const cv::Mat& t12, const float sigmaLevel, const float unc, cv::Mat& p3D);
+        float TriangulateMatches(GeometricCamera* pCamera2, const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, const cv::Mat& R12, const cv::Mat& t12, const float sigmaLevel, const float unc, cv::Mat& p3D, float *pz2 = nullptr);
         float TriangulateMatches_(GeometricCamera* pCamera2, const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, const cv::Matx33f& R12, const cv::Matx31f& t12, const float sigmaLevel, const float unc, cv::Matx31f& p3D);
 
         std::vector<int> mvLappingArea;
 
-        bool matchAndtriangulate(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, GeometricCamera* pOther,
-                                                 cv::Mat& Tcw1, cv::Mat& Tcw2,
-                                                 const float sigmaLevel1, const float sigmaLevel2,
-                                                 cv::Mat& x3Dtriangulated);
+//        bool matchAndtriangulate(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, GeometricCamera* pOther,
+//                                                 cv::Mat& Tcw1, cv::Mat& Tcw2,
+//                                                 const float sigmaLevel1, const float sigmaLevel2,
+//                                                 cv::Mat& x3Dtriangulated);
 
         friend std::ostream& operator<<(std::ostream& os, const KannalaBrandt8& kb);
         friend std::istream& operator>>(std::istream& is, KannalaBrandt8& kb);

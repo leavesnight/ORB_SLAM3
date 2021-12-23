@@ -1553,7 +1553,7 @@ bool Tracking::PredictStateIMU()
     return false;
 }
 
-
+/*
 void Tracking::ComputeGyroBias(const vector<Frame*> &vpFs, float &bwx,  float &bwy, float &bwz)
 {
     const int N = vpFs.size();
@@ -1652,7 +1652,7 @@ void Tracking::ComputeVelocitiesAccBias(const vector<Frame*> &vpFs, float &bax, 
         }
     }
 }
-
+*/
 
 void Tracking::Track()
 {
@@ -2001,13 +2001,13 @@ void Tracking::Track()
             if (mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO)
             {
                 Verbose::PrintMess("Track lost for less than one second...", Verbose::VERBOSITY_NORMAL);
-                if(!pCurrentMap->isImuInitialized() || !pCurrentMap->GetIniertialBA2())
-                {
+//                if(!pCurrentMap->isImuInitialized() || !pCurrentMap->GetIniertialBA2())
+//                {
                     cout << "IMU is not or recently initialized. Reseting active map..." << endl;
-                    mpSystem->ResetActiveMap();
-                }
+//                    mpSystem->ResetActiveMap();
+//                }
 
-                mState = RECENTLY_LOST;
+                mState = RECENTLY_LOST;//LOST;//LOST for no imu mode
             }
             else
                 mState = RECENTLY_LOST; // visual to lost
@@ -2136,6 +2136,7 @@ void Tracking::Track()
                     mpSystem->ResetActiveMap();
                     return;
                 }
+            //denote former part for no imu mode
 
             CreateMapInAtlas();
         }
@@ -2179,13 +2180,13 @@ void Tracking::StereoInitialization()
     {
         if (mSensor == System::IMU_STEREO)
         {
-            if (!mCurrentFrame.mpImuPreintegrated || !mLastFrame.mpImuPreintegrated)
+            if (0&&(!mCurrentFrame.mpImuPreintegrated || !mLastFrame.mpImuPreintegrated))//0&& for no acc check mode
             {
                 cout << "not IMU meas" << endl;
                 return;
             }
 
-            if (cv::norm(mCurrentFrame.mpImuPreintegratedFrame->avgA-mLastFrame.mpImuPreintegratedFrame->avgA)<0.5)
+            if (0&&cv::norm(mCurrentFrame.mpImuPreintegratedFrame->avgA-mLastFrame.mpImuPreintegratedFrame->avgA)<0.5)//0&& for no acc check mode
             {
                 cout << "not enough acceleration" << endl;
                 return;
@@ -2237,6 +2238,7 @@ void Tracking::StereoInitialization()
                 int rightIndex = mCurrentFrame.mvLeftToRightMatch[i];
                 if(rightIndex != -1){
                     cv::Mat x3D = mCurrentFrame.mvStereo3Dpoints[i];
+                    cout << "check mp ="<<x3D.t()<<" "<<mCurrentFrame.UnprojectStereoFishEye(i).t()<<endl;
 
                     MapPoint* pNewMP = new MapPoint(x3D,pKFini,mpAtlas->GetCurrentMap());
 
@@ -2580,6 +2582,7 @@ bool Tracking::TrackReferenceKeyFrame()
     vector<MapPoint*> vpMapPointMatches;
 
     int nmatches = matcher.SearchByBoW(mpReferenceKF,mCurrentFrame,vpMapPointMatches);
+  cout << "math num="<<nmatches<<endl;
 
     if(nmatches<15)
     {
@@ -2592,9 +2595,10 @@ bool Tracking::TrackReferenceKeyFrame()
 
     //mCurrentFrame.PrintPointDistribution();
 
-
+  cout << "bef opt="<<nmatches<<endl;
     // cout << " TrackReferenceKeyFrame mLastFrame.mTcw:  " << mLastFrame.mTcw << endl;
-    Optimizer::PoseOptimization(&mCurrentFrame);
+    int num_inliers = Optimizer::PoseOptimization(&mCurrentFrame);
+  cout << "inliers="<<num_inliers<<endl;
 
     // Discard outliers
     int nmatchesMap = 0;
@@ -2711,6 +2715,7 @@ bool Tracking::TrackWithMotionModel()
     {
         // Predict ste with IMU if it is initialized and it doesnt need reset
         PredictStateIMU();
+        //CV_Assert(0);
         return true;
     }
     else
@@ -2730,6 +2735,7 @@ bool Tracking::TrackWithMotionModel()
         th=15;
 
     int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR || mSensor==System::IMU_MONOCULAR);
+  cout << "math num2="<<nmatches<<endl;
 
     // If few matches, uses a wider window search
     if(nmatches<20)
@@ -2752,7 +2758,8 @@ bool Tracking::TrackWithMotionModel()
     }
 
     // Optimize frame pose with all matches
-    Optimizer::PoseOptimization(&mCurrentFrame);
+    int num_inliers = Optimizer::PoseOptimization(&mCurrentFrame);
+  cout << "inliers2="<< num_inliers<<endl;
 
     // Discard outliers
     int nmatchesMap = 0;
@@ -2897,6 +2904,7 @@ bool Tracking::TrackLocalMap()
     // Decide if the tracking was succesful
     // More restrictive if there was a relocalization recently
     mpLocalMapper->mnMatchesInliers=mnMatchesInliers;
+    cout << "check inliers_map="<<mnMatchesInliers<<endl;
     if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mnMatchesInliers<50)
         return false;
 
@@ -3244,6 +3252,7 @@ void Tracking::SearchLocalPoints()
             mCurrentFrame.mmProjectPoints[pMP->mnId] = cv::Point2f(pMP->mTrackProjX, pMP->mTrackProjY);
         }
     }
+  cout << "extra init=" << nToMatch << endl;
 
     if(nToMatch>0)
     {
@@ -3272,6 +3281,7 @@ void Tracking::SearchLocalPoints()
 
         int matches = matcher.SearchByProjection(mCurrentFrame, mvpLocalMapPoints, th, mpLocalMapper->mbFarPoints, mpLocalMapper->mThFarPoints);
     }
+  cout << "befopt2 extra=" << nToMatch << endl;
 }
 
 void Tracking::UpdateLocalMap()
@@ -3905,7 +3915,7 @@ void Tracking::UpdateFrameIMU(const float s, const IMU::Bias &b, KeyFrame* pCurr
     mnFirstImuFrameId = mCurrentFrame.mnId;
 }
 
-
+/*
 cv::Mat Tracking::ComputeF12(KeyFrame *&pKF1, KeyFrame *&pKF2)
 {
     cv::Mat R1w = pKF1->GetRotation();
@@ -3924,8 +3934,9 @@ cv::Mat Tracking::ComputeF12(KeyFrame *&pKF1, KeyFrame *&pKF2)
 
     return K1.t().inv()*t12x*R12*K2.inv();
 }
+*/
 
-
+/*
 void Tracking::CreateNewMapPoints()
 {
     // Retrieve neighbor keyframes in covisibility graph
@@ -4165,6 +4176,7 @@ void Tracking::CreateNewMapPoints()
     }
     TrackReferenceKeyFrame();
 }
+*/
 
 void Tracking::NewDataset()
 {

@@ -149,6 +149,7 @@ void LocalMapping::Run()
                         bool bLarge = ((mpTracker->GetMatchesInliers()>75)&&mbMonocular)||((mpTracker->GetMatchesInliers()>100)&&!mbMonocular);
                         Optimizer::LocalInertialBA(mpCurrentKeyFrame, &mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA, bLarge, !mpCurrentKeyFrame->GetMap()->GetIniertialBA2());
                         b_doneLBA = true;
+                        //CV_Assert(0);
                     }
                     else
                     {
@@ -179,7 +180,7 @@ void LocalMapping::Run()
 #endif
 
                 // Initialize IMU here
-                if(!mpCurrentKeyFrame->GetMap()->isImuInitialized() && mbInertial)
+                if(!mpCurrentKeyFrame->GetMap()->isImuInitialized() && mbInertial)//0&& can let this don't use imu
                 {
                     if (mbMonocular)
                         InitializeIMU(1e2, 1e10, true);
@@ -198,7 +199,7 @@ void LocalMapping::Run()
                 vdKFCullingSync_ms.push_back(timeKFCulling_ms);
 #endif
 
-                if ((mTinit<100.0f) && mbInertial)
+                if ((mTinit<100.0f) && mbInertial)//0&& can let this don't use imu
                 {
                     if(mpCurrentKeyFrame->GetMap()->isImuInitialized() && mpTracker->mState==Tracking::OK)
                     {
@@ -251,7 +252,7 @@ void LocalMapping::Run()
 #endif
 
 
-            mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);
+            mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);//denote this can avoid loop close
 
 
 #ifdef REGISTER_TIMES
@@ -434,6 +435,7 @@ void LocalMapping::CreateNewMapPoints()
     const float &invfy1 = mpCurrentKeyFrame->invfy;
 
     const float ratioFactor = 1.5f*mpCurrentKeyFrame->mfScaleFactor;
+    int nnew = 0;
 
     // Search matches with epipolar restriction and triangulate
     for(size_t i=0; i<vpNeighKFs.size(); i++)
@@ -744,8 +746,10 @@ void LocalMapping::CreateNewMapPoints()
 
             mpAtlas->AddMapPoint(pMP);
             mlpRecentAddedMapPoints.push_back(pMP);
+            ++nnew;
         }
     }
+    cout << "check nnew = "<< nnew<<endl;
 }
 
 
@@ -808,7 +812,7 @@ void LocalMapping::SearchInNeighbors()
         KeyFrame* pKFi = *vit;
 
         matcher.Fuse(pKFi,vpMapPointMatches);
-        if(pKFi->NLeft != -1) matcher.Fuse(pKFi,vpMapPointMatches,true);
+        if(pKFi->NLeft != -1) matcher.Fuse(pKFi,vpMapPointMatches,3.0,true);
     }
 
     if (mbAbortBA)
@@ -837,7 +841,7 @@ void LocalMapping::SearchInNeighbors()
     }
 
     matcher.Fuse(mpCurrentKeyFrame,vpFuseCandidates);
-    if(mpCurrentKeyFrame->NLeft != -1) matcher.Fuse(mpCurrentKeyFrame,vpFuseCandidates,true);
+    if(mpCurrentKeyFrame->NLeft != -1) matcher.Fuse(mpCurrentKeyFrame,vpFuseCandidates,3.0,true);
 
 
     // Update points
@@ -859,24 +863,24 @@ void LocalMapping::SearchInNeighbors()
     mpCurrentKeyFrame->UpdateConnections();
 }
 
-cv::Mat LocalMapping::ComputeF12(KeyFrame *&pKF1, KeyFrame *&pKF2)
-{
-    cv::Mat R1w = pKF1->GetRotation();
-    cv::Mat t1w = pKF1->GetTranslation();
-    cv::Mat R2w = pKF2->GetRotation();
-    cv::Mat t2w = pKF2->GetTranslation();
-
-    cv::Mat R12 = R1w*R2w.t();
-    cv::Mat t12 = -R1w*R2w.t()*t2w+t1w;
-
-    cv::Mat t12x = SkewSymmetricMatrix(t12);
-
-    const cv::Mat &K1 = pKF1->mpCamera->toK();
-    const cv::Mat &K2 = pKF2->mpCamera->toK();
-
-
-    return K1.t().inv()*t12x*R12*K2.inv();
-}
+//cv::Mat LocalMapping::ComputeF12(KeyFrame *&pKF1, KeyFrame *&pKF2)
+//{
+//    cv::Mat R1w = pKF1->GetRotation();
+//    cv::Mat t1w = pKF1->GetTranslation();
+//    cv::Mat R2w = pKF2->GetRotation();
+//    cv::Mat t2w = pKF2->GetTranslation();
+//
+//    cv::Mat R12 = R1w*R2w.t();
+//    cv::Mat t12 = -R1w*R2w.t()*t2w+t1w;
+//
+//    cv::Mat t12x = SkewSymmetricMatrix(t12);
+//
+//    const cv::Mat &K1 = pKF1->mpCamera->toK();
+//    const cv::Mat &K2 = pKF2->mpCamera->toK();
+//
+//
+//    return K1.t().inv()*t12x*R12*K2.inv();
+//}
 
 cv::Matx33f LocalMapping::ComputeF12_(KeyFrame *&pKF1, KeyFrame *&pKF2)
 {
@@ -1084,7 +1088,7 @@ void LocalMapping::KeyFrameCulling()
 
         if(nRedundantObservations>redundant_th*nMPs)
         {
-            if (mbInertial)
+            if (mbInertial)//0&& can let this don't use imu
             {
                 if (mpAtlas->KeyFramesInMap()<=Nd)
                     continue;
@@ -1118,6 +1122,7 @@ void LocalMapping::KeyFrameCulling()
             }
             else
             {
+                cout << pKF->mnId << "badflag" << endl;
                 pKF->SetBadFlag();
             }
         }

@@ -393,6 +393,7 @@ void Frame::AssignFeaturesToGrid()
         }
 
 
+  //vector<vector<vector<int>>> count_grids(2, vector<vector<int>>(FRAME_GRID_COLS, vector<int>(FRAME_GRID_ROWS)));
 
     for(int i=0;i<N;i++)
     {
@@ -402,12 +403,25 @@ void Frame::AssignFeaturesToGrid()
 
         int nGridPosX, nGridPosY;
         if(PosInGrid(kp,nGridPosX,nGridPosY)){
-            if(Nleft == -1 || i < Nleft)
-                mGrid[nGridPosX][nGridPosY].push_back(i);
-            else
-                mGridRight[nGridPosX][nGridPosY].push_back(i - Nleft);
+            if(Nleft == -1 || i < Nleft) {
+            mGrid[nGridPosX][nGridPosY].push_back(i);
+              //++count_grids[0][nGridPosX][nGridPosY];
+            }else {
+              mGridRight[nGridPosX][nGridPosY].push_back(i - Nleft);
+              //++count_grids[1][nGridPosX][nGridPosY];
+            }
         }
     }
+
+//    for (int cami = 0; cami < 2; ++cami) {
+//      cout << cami << ":";
+//      for (unsigned int i = 0; i < FRAME_GRID_COLS; i++) {
+//        for (unsigned int j = 0; j < FRAME_GRID_ROWS; j++)
+//          cout << " " << count_grids[cami][i][j];
+//        cout << endl;
+//      }
+//      cout << endl;
+//    }
 }
 
 void Frame::ExtractORB(int flag, const cv::Mat &im, const int x0, const int x1)
@@ -725,6 +739,7 @@ void Frame::ComputeBoW()
 {
     if(mBowVec.empty())
     {
+      std::cout <<"Bow"<<mDescriptors.size()<<std::endl;
         vector<cv::Mat> vCurrentDesc = Converter::toDescriptorVector(mDescriptors);
         mpORBvocabulary->transform(vCurrentDesc,mBowVec,mFeatVec,4);
     }
@@ -1140,22 +1155,31 @@ void Frame::ComputeStereoFishEyeMatches() {
     int descMatches = 0;
 
     //Check matches using Lowe's ratio
+    set<pair<int,int>> check;
     for(vector<vector<cv::DMatch>>::iterator it = matches.begin(); it != matches.end(); ++it){
         if((*it).size() >= 2 && (*it)[0].distance < (*it)[1].distance * 0.7){
             //For every good match, check parallax and reprojection error to discard spurious matches
             cv::Mat p3D;
             descMatches++;
             float sigma1 = mvLevelSigma2[mvKeys[(*it)[0].queryIdx + monoLeft].octave], sigma2 = mvLevelSigma2[mvKeysRight[(*it)[0].trainIdx + monoRight].octave];
-            float depth = static_cast<KannalaBrandt8*>(mpCamera)->TriangulateMatches(mpCamera2,mvKeys[(*it)[0].queryIdx + monoLeft],mvKeysRight[(*it)[0].trainIdx + monoRight],mRlr,mtlr,sigma1,sigma2,p3D);
-            if(depth > 0.0001f){
+          float depth2;
+            float depth = static_cast<KannalaBrandt8*>(mpCamera)->TriangulateMatches(mpCamera2,mvKeys[(*it)[0].queryIdx + monoLeft],mvKeysRight[(*it)[0].trainIdx + monoRight],mRlr,mtlr,sigma1,sigma2,p3D, &depth2);
+            if(depth > 0.0001f && depth2 > 0.0001f){
+              if (check.count(make_pair(1,(*it)[0].trainIdx + monoRight))) continue;
+              else check.emplace(make_pair(1,(*it)[0].trainIdx + monoRight));
+              if (check.count(make_pair(0,(*it)[0].queryIdx + monoLeft))) continue;
+              else check.emplace(make_pair(0,(*it)[0].queryIdx + monoLeft));
                 mvLeftToRightMatch[(*it)[0].queryIdx + monoLeft] = (*it)[0].trainIdx + monoRight;
                 mvRightToLeftMatch[(*it)[0].trainIdx + monoRight] = (*it)[0].queryIdx + monoLeft;
                 mvStereo3Dpoints[(*it)[0].queryIdx + monoLeft] = p3D.clone();
                 mvDepth[(*it)[0].queryIdx + monoLeft] = depth;
+              //if (depth > 0) cout << (int)0 << ","<<(*it)[0].queryIdx + monoLeft<<":"<<mvKeys[(*it)[0].queryIdx + monoLeft].pt<<endl;
                 nMatches++;
             }
         }
     }
+  cout << "match num="<<nMatches<<endl;
+  cout << mDescriptors.size() << ","<<mDescriptorsRight.size()<<endl;
 }
 
 bool Frame::isInFrustumChecks(MapPoint *pMP, float viewingCosLimit, bool bRight) {
@@ -1167,14 +1191,14 @@ bool Frame::isInFrustumChecks(MapPoint *pMP, float viewingCosLimit, bool bRight)
 
     cv::Matx33f Rcw = mRcwx;
     cv::Matx33f Rwc = mRcwx.t();
-    cv::Matx31f tcw = mOwx;
+    cv::Matx31f tcw = mtcw;//-Rcw * mOwx;
 
     if(bRight){
         cv::Matx33f Rrl = mTrlx.get_minor<3,3>(0,0);
         cv::Matx31f trl = mTrlx.get_minor<3,1>(0,3);
         mRx = Rrl * Rcw;
         mtx = Rrl * tcw + trl;
-        twcx = Rwc * mTlrx.get_minor<3,1>(0,3) + tcw;
+        twcx = Rwc * mTlrx.get_minor<3,1>(0,3) + mOwx;
     }
     else{
         mRx = mRcwx;

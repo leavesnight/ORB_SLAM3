@@ -417,7 +417,19 @@ void System::SaveTrajectoryTUM(const string &filename, const bool imu_info)
 //        return;
 //    }
 
-    vector<KeyFrame*> vpKFs = mpAtlas->GetAllKeyFrames();
+  vector<Map*> vpMaps = mpAtlas->GetAllMaps();
+  Map* pBiggerMap;
+  int numMaxKFs = 0;
+  for(Map* pMap :vpMaps)
+  {
+    if(pMap->GetAllKeyFrames().size() > numMaxKFs)
+    {
+      numMaxKFs = pMap->GetAllKeyFrames().size();
+      pBiggerMap = pMap;
+    }
+  }
+
+  vector<KeyFrame*> vpKFs = pBiggerMap->GetAllKeyFrames();
     sort(vpKFs.begin(),vpKFs.end(),KeyFrame::lId);
 
     // Transform all keyframes so that the first keyframe is at the origin.

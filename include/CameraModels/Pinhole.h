@@ -85,10 +85,10 @@ namespace ORB_SLAM3 {
         bool epipolarConstrain(GeometricCamera* pCamera2, const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, const cv::Mat& R12, const cv::Mat& t12, const float sigmaLevel, const float unc);
         bool epipolarConstrain_(GeometricCamera* pCamera2, const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, const cv::Matx33f& R12, const cv::Matx31f& t12, const float sigmaLevel, const float unc);
 
-        bool matchAndtriangulate(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, GeometricCamera* pOther,
-                                 cv::Mat& Tcw1, cv::Mat& Tcw2,
-                                 const float sigmaLevel1, const float sigmaLevel2,
-                                 cv::Mat& x3Dtriangulated) { return false;}
+//        bool matchAndtriangulate(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, GeometricCamera* pOther,
+//                                 cv::Mat& Tcw1, cv::Mat& Tcw2,
+//                                 const float sigmaLevel1, const float sigmaLevel2,
+//                                 cv::Mat& x3Dtriangulated) { return false;}
 
         friend std::ostream& operator<<(std::ostream& os, const Pinhole& ph);
         friend std::istream& operator>>(std::istream& os, Pinhole& ph);

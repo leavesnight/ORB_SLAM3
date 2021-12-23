@@ -1805,11 +1805,8 @@ void LoopClosing::SearchAndFuse(const KeyFrameAndPose &CorrectedPosesMap, vector
             MapPoint* pRep = vpReplacePoints[i];
             if(pRep)
             {
-
-
                 num_replaces += 1;
                 pRep->Replace(vpMapPoints[i]);
-
             }
         }
 

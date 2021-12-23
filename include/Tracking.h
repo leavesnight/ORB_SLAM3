@@ -192,8 +192,8 @@ protected:
 
     // Map initialization for monocular
     void MonocularInitialization();
-    void CreateNewMapPoints();
-    cv::Mat ComputeF12(KeyFrame *&pKF1, KeyFrame *&pKF2);
+    //void CreateNewMapPoints();
+    //cv::Mat ComputeF12(KeyFrame *&pKF1, KeyFrame *&pKF2);
     void CreateInitialMapMonocular();
 
     void CheckReplacedInLastFrame();
@@ -209,7 +209,6 @@ protected:
     void UpdateLocalKeyFrames();
 
     bool TrackLocalMap();
-    bool TrackLocalMap_old();
     void SearchLocalPoints();
 
     bool NeedNewKeyFrame();
@@ -219,8 +218,8 @@ protected:
     void PreintegrateIMU();
 
     // Reset IMU biases and compute frame velocity
-    void ComputeGyroBias(const vector<Frame*> &vpFs, float &bwx,  float &bwy, float &bwz);
-    void ComputeVelocitiesAccBias(const vector<Frame*> &vpFs, float &bax,  float &bay, float &baz);
+    //void ComputeGyroBias(const vector<Frame*> &vpFs, float &bwx,  float &bwy, float &bwz);
+    //void ComputeVelocitiesAccBias(const vector<Frame*> &vpFs, float &bax,  float &bay, float &baz);
 
 
     bool mbMapUpdated;

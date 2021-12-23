@@ -133,7 +133,7 @@ protected:
     void SearchInNeighbors();
     void KeyFrameCulling();
 
-    cv::Mat ComputeF12(KeyFrame* &pKF1, KeyFrame* &pKF2);
+    //cv::Mat ComputeF12(KeyFrame* &pKF1, KeyFrame* &pKF2);
     cv::Matx33f ComputeF12_(KeyFrame* &pKF1, KeyFrame* &pKF2);
 
     cv::Mat SkewSymmetricMatrix(const cv::Mat &v);

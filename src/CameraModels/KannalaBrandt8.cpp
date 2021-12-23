@@ -241,101 +241,101 @@ namespace ORB_SLAM3 {
         return this->TriangulateMatches_(pCamera2,kp1,kp2,R12,t12,sigmaLevel,unc,p3D) > 0.0001f;
     }
 
-    bool KannalaBrandt8::matchAndtriangulate(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, GeometricCamera* pOther,
-                                             cv::Mat& Tcw1, cv::Mat& Tcw2,
-                                            const float sigmaLevel1, const float sigmaLevel2,
-                                            cv::Mat& x3Dtriangulated){
-        cv::Mat Rcw1 = Tcw1.colRange(0,3).rowRange(0,3);
-        cv::Mat Rwc1 = Rcw1.t();
-        cv::Mat tcw1 = Tcw1.rowRange(0,3).col(3);
+//    bool KannalaBrandt8::matchAndtriangulate(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, GeometricCamera* pOther,
+//                                             cv::Mat& Tcw1, cv::Mat& Tcw2,
+//                                            const float sigmaLevel1, const float sigmaLevel2,
+//                                            cv::Mat& x3Dtriangulated){
+//        cv::Mat Rcw1 = Tcw1.colRange(0,3).rowRange(0,3);
+//        cv::Mat Rwc1 = Rcw1.t();
+//        cv::Mat tcw1 = Tcw1.rowRange(0,3).col(3);
+//
+//        cv::Mat Rcw2 = Tcw2.colRange(0,3).rowRange(0,3);
+//        cv::Mat Rwc2 = Rcw2.t();
+//        cv::Mat tcw2 = Tcw2.rowRange(0,3).col(3);
+//
+//        cv::Point3f ray1c = this->unproject(kp1.pt);
+//        cv::Point3f ray2c = pOther->unproject(kp2.pt);
+//
+//        cv::Mat r1(3,1,CV_32F);
+//        r1.at<float>(0) = ray1c.x;
+//        r1.at<float>(1) = ray1c.y;
+//        r1.at<float>(2) = ray1c.z;
+//
+//        cv::Mat r2(3,1,CV_32F);
+//        r2.at<float>(0) = ray2c.x;
+//        r2.at<float>(1) = ray2c.y;
+//        r2.at<float>(2) = ray2c.z;
+//
+//        //Check parallax between rays
+//        cv::Mat ray1 = Rwc1*r1;
+//        cv::Mat ray2 = Rwc2*r2;
+//
+//        const float cosParallaxRays = ray1.dot(ray2)/(cv::norm(ray1)*cv::norm(ray2));
+//
+//        //If parallax is lower than 0.9998, reject this match
+//        if(cosParallaxRays > 0.9998){
+//            return false;
+//        }
+//
+//        //Parallax is good, so we try to triangulate
+//        cv::Point2f p11,p22;
+//
+//        p11.x = ray1c.x;
+//        p11.y = ray1c.y;
+//
+//        p22.x = ray2c.x;
+//        p22.y = ray2c.y;
+//
+//        cv::Mat x3D;
+//
+//        Triangulate(p11,p22,Tcw1,Tcw2,x3D);
+//
+//        cv::Mat x3Dt = x3D.t();
+//
+//        //Check triangulation in front of cameras
+//        float z1 = Rcw1.row(2).dot(x3Dt)+tcw1.at<float>(2);
+//        if(z1<=0){  //Point is not in front of the first camera
+//            return false;
+//        }
+//
+//
+//        float z2 = Rcw2.row(2).dot(x3Dt)+tcw2.at<float>(2);
+//        if(z2<=0){ //Point is not in front of the first camera
+//            return false;
+//        }
+//
+//        //Check reprojection error in first keyframe
+//        //  -Transform point into camera reference system
+//        cv::Mat x3D1 = Rcw1 * x3D + tcw1;
+//        cv::Point2f uv1 = this->project(x3D1);
+//
+//        float errX1 = uv1.x - kp1.pt.x;
+//        float errY1 = uv1.y - kp1.pt.y;
+//
+//        if((errX1*errX1+errY1*errY1)>5.991*sigmaLevel1){   //Reprojection error is high
+//            return false;
+//        }
+//
+//        //Check reprojection error in second keyframe;
+//        //  -Transform point into camera reference system
+//        cv::Mat x3D2 = Rcw2 * x3D + tcw2;
+//        cv::Point2f uv2 = pOther->project(x3D2);
+//
+//        float errX2 = uv2.x - kp2.pt.x;
+//        float errY2 = uv2.y - kp2.pt.y;
+//
+//        if((errX2*errX2+errY2*errY2)>5.991*sigmaLevel2){   //Reprojection error is high
+//            return false;
+//        }
+//
+//        //Since parallax is big enough and reprojection errors are low, this pair of points
+//        //can be considered as a match
+//        x3Dtriangulated = x3D.clone();
+//
+//        return true;
+//    }
 
-        cv::Mat Rcw2 = Tcw2.colRange(0,3).rowRange(0,3);
-        cv::Mat Rwc2 = Rcw2.t();
-        cv::Mat tcw2 = Tcw2.rowRange(0,3).col(3);
-
-        cv::Point3f ray1c = this->unproject(kp1.pt);
-        cv::Point3f ray2c = pOther->unproject(kp2.pt);
-
-        cv::Mat r1(3,1,CV_32F);
-        r1.at<float>(0) = ray1c.x;
-        r1.at<float>(1) = ray1c.y;
-        r1.at<float>(2) = ray1c.z;
-
-        cv::Mat r2(3,1,CV_32F);
-        r2.at<float>(0) = ray2c.x;
-        r2.at<float>(1) = ray2c.y;
-        r2.at<float>(2) = ray2c.z;
-
-        //Check parallax between rays
-        cv::Mat ray1 = Rwc1*r1;
-        cv::Mat ray2 = Rwc2*r2;
-
-        const float cosParallaxRays = ray1.dot(ray2)/(cv::norm(ray1)*cv::norm(ray2));
-
-        //If parallax is lower than 0.9998, reject this match
-        if(cosParallaxRays > 0.9998){
-            return false;
-        }
-
-        //Parallax is good, so we try to triangulate
-        cv::Point2f p11,p22;
-
-        p11.x = ray1c.x;
-        p11.y = ray1c.y;
-
-        p22.x = ray2c.x;
-        p22.y = ray2c.y;
-
-        cv::Mat x3D;
-
-        Triangulate(p11,p22,Tcw1,Tcw2,x3D);
-
-        cv::Mat x3Dt = x3D.t();
-
-        //Check triangulation in front of cameras
-        float z1 = Rcw1.row(2).dot(x3Dt)+tcw1.at<float>(2);
-        if(z1<=0){  //Point is not in front of the first camera
-            return false;
-        }
-
-
-        float z2 = Rcw2.row(2).dot(x3Dt)+tcw2.at<float>(2);
-        if(z2<=0){ //Point is not in front of the first camera
-            return false;
-        }
-
-        //Check reprojection error in first keyframe
-        //  -Transform point into camera reference system
-        cv::Mat x3D1 = Rcw1 * x3D + tcw1;
-        cv::Point2f uv1 = this->project(x3D1);
-
-        float errX1 = uv1.x - kp1.pt.x;
-        float errY1 = uv1.y - kp1.pt.y;
-
-        if((errX1*errX1+errY1*errY1)>5.991*sigmaLevel1){   //Reprojection error is high
-            return false;
-        }
-
-        //Check reprojection error in second keyframe;
-        //  -Transform point into camera reference system
-        cv::Mat x3D2 = Rcw2 * x3D + tcw2;
-        cv::Point2f uv2 = pOther->project(x3D2);
-
-        float errX2 = uv2.x - kp2.pt.x;
-        float errY2 = uv2.y - kp2.pt.y;
-
-        if((errX2*errX2+errY2*errY2)>5.991*sigmaLevel2){   //Reprojection error is high
-            return false;
-        }
-
-        //Since parallax is big enough and reprojection errors are low, this pair of points
-        //can be considered as a match
-        x3Dtriangulated = x3D.clone();
-
-        return true;
-    }
-
-    float KannalaBrandt8::TriangulateMatches(GeometricCamera *pCamera2, const cv::KeyPoint &kp1, const cv::KeyPoint &kp2, const cv::Mat &R12, const cv::Mat &t12, const float sigmaLevel, const float unc, cv::Mat& p3D) {
+    float KannalaBrandt8::TriangulateMatches(GeometricCamera *pCamera2, const cv::KeyPoint &kp1, const cv::KeyPoint &kp2, const cv::Mat &R12, const cv::Mat &t12, const float sigmaLevel, const float unc, cv::Mat& p3D, float *pz2) {
         cv::Mat r1 = this->unprojectMat(kp1.pt);
         cv::Mat r2 = pCamera2->unprojectMat(kp2.pt);
 
@@ -403,6 +403,7 @@ namespace ORB_SLAM3 {
 
         p3D = x3D.clone();
 
+        if (pz2) *pz2 = z2;
         return z1;
     }
 
