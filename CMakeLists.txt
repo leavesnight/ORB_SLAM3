@@ -5,6 +5,8 @@ IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release)
 ENDIF()
 
+set(ADD_YVR_EXAMPLE 1)
+
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall   -O3")
@@ -203,7 +205,9 @@ add_executable(stereo_inertial_tum_vi
 Examples/Stereo-Inertial/stereo_inertial_tum_vi.cc)
 target_link_libraries(stereo_inertial_tum_vi ${PROJECT_NAME})
 
-add_executable(stereo_inertial_yvr
-        Examples/Stereo-Inertial/stereo_inertial_yvr.cc)
-target_link_libraries(stereo_inertial_yvr ${PROJECT_NAME})
-
+if (${ADD_YVR_EXAMPLE})
+    find_package(RapidJSON)
+    add_executable(stereo_inertial_yvr
+            Examples/Stereo-Inertial/stereo_inertial_yvr.cc)
+    target_link_libraries(stereo_inertial_yvr ${PROJECT_NAME})
+endif ()
