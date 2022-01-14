@@ -174,6 +174,23 @@ int main(int argc, char **argv)
         cerr << "ERROR: Wrong path to settings" << endl;
         return -1;
     }
+    cv::FileNode fnimumode = fsSettings["IMU.mode"];
+    int mode_imu = fnimumode.empty() ? 0 : (int)fnimumode;
+    if (1 == (int)mode_imu) { // 1 menas -gy,gxgz/-ay,axaz
+      for (int seq = 0; seq < num_seq; ++seq) {
+        auto &vacc = vAcc[seq], &vgyr = vGyro[seq];
+        for (int i = 0; i < vacc.size(); ++i)
+          for (int j = 0; j < vacc[i].size(); ++j) {
+            swap(vacc[i][j].x, vacc[i][j].y);
+            vacc[i][j].y = -vacc[i][j].y;
+          }
+        for (int i = 0; i < vgyr.size(); ++i)
+          for (int j = 0; j < vgyr[i].size(); ++j) {
+            swap(vgyr[i][j].x, vgyr[i][j].y);
+            vgyr[i][j].y = -vgyr[i][j].y;
+          }
+      }
+    }
 
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
