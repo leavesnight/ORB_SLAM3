@@ -67,7 +67,7 @@ int main(int argc, char **argv)
     vector< vector<vector<double>> > vTimestampsCam;
     vector< vector<vector<cv::Point3f>> > vAcc, vGyro;
     vector< vector<vector<double>> > vTimestampsImu;
-    vector<int> nImages;
+    vector<int> nImages, nImagesUsed;
     vector<int> nImu;
     vector<int> first_imu(num_seq,0);
 
@@ -77,6 +77,7 @@ int main(int argc, char **argv)
     vGyro.resize(num_seq, vector<vector<cv::Point3f>>(1));
     vTimestampsImu.resize(num_seq, vector<vector<double>>(1));
     nImages.resize(num_seq);
+    nImagesUsed.resize(num_seq, 0);
     nImu.resize(num_seq);
 
     int tot_images = 0;
@@ -194,7 +195,7 @@ int main(int argc, char **argv)
 
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
-    vTimesTrack.resize(tot_images);
+    vTimesTrack.resize(tot_images, 0);
 
     cout << endl << "-------" << endl;
     cout.precision(17);
@@ -207,19 +208,30 @@ int main(int argc, char **argv)
         pSLAM=make_shared<ORB_SLAM3::System>(argv[1],argv[2],ORB_SLAM3::System::STEREO, true);
     ORB_SLAM3::System& SLAM=*pSLAM;
 
+    cv::FileNode fnfps = fsSettings["Camera.fps"];
     for (seq = 0; seq<num_seq; seq++)
     {
       auto &vstrimg = vstrImageLeft[seq];
       auto &vtmcam = vTimestampsCam[seq];
       auto &vacc = vAcc[seq], &vgyr = vGyro[seq];
       auto &vtmimu = vTimestampsImu[seq];
+      int fpsrat = 1;
+      if (!fnfps.empty() && nImages[seq] > 1) {
+        double fps = (double)fnfps;
+        double fpsreal =
+            vtmcam[0].size() / (vtmcam[0].back() - vtmcam[0].front());
+        fpsrat = (int)(fpsreal / fps + 0.5);
+        if (fpsrat < 1)
+          fpsrat = 1;
+        cout << "fps ratio: " << fpsrat << endl;
+      }
 
         cv::Mat ims[2];
         // Seq loop
         vector<ORB_SLAM3::IMU::Point> vImuMeas;
         int proccIm = 0;
 //        cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(3.0, cv::Size(8, 8));
-        for(int ni=0; ni<nImages[seq]; ni++, proccIm++)
+        for(int ni=0; ni<nImages[seq]; ni+=fpsrat, proccIm++)
         {
           double tframe = vtmcam[0][ni];
 
@@ -288,9 +300,11 @@ int main(int argc, char **argv)
                 T = vtmcam[0][ni+1]-tframe;
             else if(ni>0)
                 T = tframe-vtmcam[0][ni-1];
+            T *= fpsrat;
 
             if(ttrack<T)
                 usleep((T-ttrack)*1e6); // 1e6
+            ++nImagesUsed[seq];
         }
 
         if(seq < num_seq - 1)
@@ -299,12 +313,22 @@ int main(int argc, char **argv)
 
             SLAM.ChangeDataset();
         }
-
-
     }
     // Stop all threads
     SLAM.Shutdown();
 
+    int ni = 0;
+    for (int seq = 0; seq < num_seq; ++ seq) {
+      // Tracking time statistics
+      sort(vTimesTrack.begin(), vTimesTrack.end());
+      float totaltime = 0;
+      for (; ni < nImages[seq]; ni++) {
+        totaltime += vTimesTrack[ni];
+      }
+      cout << "-------seq" << seq << endl << endl;
+      cout << "mean tracking time: " << totaltime / nImagesUsed[seq] << endl;
+      cout << "max tracking time: " << vTimesTrack[ni - 1] << endl;
+    }
 
     // Save camera trajectory
 //    SLAM.SaveTrajectoryEuRoC("CameraTrajectory.txt", 1.0);

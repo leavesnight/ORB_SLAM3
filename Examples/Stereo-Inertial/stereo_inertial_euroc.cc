@@ -271,6 +271,18 @@ int main(int argc, char **argv)
     // Stop all threads
     SLAM.Shutdown();
 
+    int ni = 0;
+    for (int seq = 0; seq < num_seq; ++ seq) {
+      // Tracking time statistics
+      sort(vTimesTrack.begin(), vTimesTrack.end());
+      float totaltime = 0;
+      for (; ni < nImages[seq]; ni++) {
+        totaltime += vTimesTrack[ni];
+      }
+      cout << "-------seq" << seq << endl << endl;
+      cout << "mean tracking time: " << totaltime / nImages[seq] << endl;
+      cout << "max tracking time: " << vTimesTrack.back() << endl;
+    }
 
     // Save camera trajectory
     double time_scale = 1.0;
