@@ -36,6 +36,50 @@
 using namespace std;
 using namespace rapidjson;
 
+void AlignImgs(vector<vector<double>> &vtmcam, vector<vector<string>> &vstrimg) {
+  CV_Assert(vtmcam.size() == vstrimg.size());
+  if (!vtmcam.size()) return;
+  CV_Assert(vtmcam[0].size() == vstrimg[0].size());
+  size_t n_cams = vtmcam.size();
+  size_t i = 0;
+  const double synch_allow = 0.010;
+  while (i < vtmcam[0].size()) {
+    bool bplus = true;
+    // cout << "tm0:" << vtmcam[0][i] << " ";
+    for (size_t j = 1; j < n_cams; ++j) {
+      while (vtmcam[j].size() > i && (vtmcam[j][i] < vtmcam[0][i] - synch_allow || vtmcam[0].size() <= i)) {
+        vtmcam[j].erase(vtmcam[j].begin() + i);
+        vstrimg[j].erase(vstrimg[j].begin() + i);
+      }
+      if (vtmcam[j].size() <= i) {
+        CV_Assert(i == vtmcam[j].size());
+        if (vtmcam[0].size() > i) {
+          vtmcam[0].resize(i);
+          vstrimg[0].resize(i);
+        }
+        continue;
+      }
+      if (vtmcam[j][i] > vtmcam[0][i] + synch_allow) {
+        vtmcam[0].erase(vtmcam[0].begin() + i);
+        vstrimg[0].erase(vstrimg[0].begin() + i);
+        bplus = false;
+      }
+      // cout << "tm" << j << ":" << vtmcam[j][i] << " ";
+    }
+    // cout << endl;
+    if (bplus) ++i;
+  }
+  auto n0 = vtmcam[0].size();
+  for (size_t j = 0; j < n_cams; ++j) {
+    CV_Assert(vtmcam[j].size() >= n0);
+    CV_Assert(vstrimg[j].size() == vtmcam[j].size());
+    vtmcam[j].resize(n0);
+    vstrimg[j].resize(n0);
+    CV_Assert(vstrimg[j].size() == n0);
+  }
+  cout << "After align img size=" << vtmcam[0].size() << endl;
+}
+
 static void GetFileNames(const string& path, vector<string>& filenames, const string& suffix=".pgm", const string& prefix="");
 
 void LoadImages(const string &strImagePath, vector<string> &vstrImages, vector<double> &vTimeStamps, const string& suffix = ".pgm");
@@ -81,92 +125,100 @@ int main(int argc, char **argv)
     nImu.resize(num_seq);
 
     int tot_images = 0;
-    for (seq = 0; seq<num_seq; seq++)
-    {
-        cout << "Loading images for sequence " << seq << "...";
+    for (seq = 0; seq<num_seq; seq++) {
+      cout << "Loading images for sequence " << seq << "...";
 
-        string pathSeq(argv[(seq) + 3]);
+      string pathSeq(argv[(seq) + 3]);
 
-        string pathCam0 = pathSeq + "/Camera8";
-        vector<string> pathImu = {pathSeq + "/Sensors/gyroscope.xml", pathSeq + "/Sensors/accelerometer.xml"};
+      string pathCam0 = pathSeq + "/Camera8";
+      vector<string> pathImu = {pathSeq + "/Sensors/gyroscope.xml",
+                                pathSeq + "/Sensors/accelerometer.xml"};
 
-        auto &vstrimg = vstrImageLeft[seq];
-        auto &vtmcam = vTimestampsCam[seq];
-        LoadImages(pathCam0, vstrimg[0], vtmcam[0]);
-        if (vtmcam[0].empty()) {
-          dataset_type = 1;
-          int n_cams_max = 4;
-          vstrimg.resize(n_cams_max);
-          vtmcam.resize(n_cams_max);
-          for (int i = 0; i < n_cams_max; ++i) {
-            pathCam0 = pathSeq + "/Camera" + to_string(i) + "/images";
-            LoadImages(pathCam0, vstrimg[i], vtmcam[i], ".bmp");
-            if (vtmcam[i].empty()) {
-              vtmcam.resize(i);
-              vstrimg.resize(i);
-              break;
-            }
+      auto &vstrimg = vstrImageLeft[seq];
+      auto &vtmcam = vTimestampsCam[seq];
+      LoadImages(pathCam0, vstrimg[0], vtmcam[0]);
+      if (vtmcam[0].empty()) {
+        dataset_type = 1;
+        int n_cams_max = 4;
+        vstrimg.resize(n_cams_max);
+        vtmcam.resize(n_cams_max);
+        for (int i = 0; i < n_cams_max; ++i) {
+          pathCam0 = pathSeq + "/Camera" + to_string(i) + "/images";
+          LoadImages(pathCam0, vstrimg[i], vtmcam[i], ".bmp");
+          if (vtmcam[i].empty()) {
+            vtmcam.resize(i);
+            vstrimg.resize(i);
+            break;
           }
         }
-        cout << "LOADED!" << endl;
+      }
+      cout << "LOADED!" << endl;
 
-        cout << "Loading IMU for sequence " << seq << "...";
-        auto &vacc = vAcc[seq], &vgyr = vGyro[seq];
-        auto &vtmimu = vTimestampsImu[seq];
-        LoadIMU(pathImu, vtmimu[0], vacc[0], vgyr[0]);
-        if (vtmimu[0].empty()) {
-          int n_imu_max = 3;
-          vtmimu.resize(n_imu_max);
-          vacc.resize(n_imu_max);
-          vgyr.resize(n_imu_max);
-          pathImu.resize(1);
-          for (int i = 0; i < n_imu_max; ++i) {
-            pathImu[0] = pathSeq + "/IMU" + to_string(i) + "/data.json";
-            LoadIMU(pathImu, vtmimu[i], vacc[i], vgyr[i]);
-            if (vtmimu[i].empty()) {
-              vtmimu.resize(i);
-              vacc.resize(i);
-              vgyr.resize(i);
-              break;
-            }
+      cout << "Loading IMU for sequence " << seq << "...";
+      auto &vacc = vAcc[seq], &vgyr = vGyro[seq];
+      auto &vtmimu = vTimestampsImu[seq];
+      LoadIMU(pathImu, vtmimu[0], vacc[0], vgyr[0]);
+      if (vtmimu[0].empty()) {
+        int n_imu_max = 3;
+        vtmimu.resize(n_imu_max);
+        vacc.resize(n_imu_max);
+        vgyr.resize(n_imu_max);
+        pathImu.resize(1);
+        for (int i = 0; i < n_imu_max; ++i) {
+          pathImu[0] = pathSeq + "/IMU" + to_string(i) + "/data.json";
+          LoadIMU(pathImu, vtmimu[i], vacc[i], vgyr[i]);
+          if (vtmimu[i].empty()) {
+            vtmimu.resize(i);
+            vacc.resize(i);
+            vgyr.resize(i);
+            break;
           }
         }
-        cout << "LOADED!" << endl;
+      }
+      cout << "LOADED!" << endl;
 
 //#define TRANS_IMU2TXT
 #ifdef TRANS_IMU2TXT
-        ofstream fout("./"+to_string(seq)+".txt");
-        for (int i =0; i < vTimestampsImu[seq].size();++i) {
-          if (vAcc[seq].size()<=i) break;
-          if (vGyro[seq].size()<=i) break;
-          fout << (unsigned long)(vTimestampsImu[seq][i]*1e9) << " "<< vAcc[seq][i].x << " " << vAcc[seq][i].y<<" "<<vAcc[seq][i].z<<" "<<
-            vGyro[seq][i].x<<" "<<vGyro[seq][i].y<<" "<<vGyro[seq][i].z<<endl;
-        }
-        fout.close();
+    ofstream fout("./" + to_string(seq) + ".txt");
+    for (int i = 0; i < vTimestampsImu[seq].size(); ++i) {
+      if (vAcc[seq].size() <= i)
+        break;
+      if (vGyro[seq].size() <= i)
+        break;
+      fout << (unsigned long)(vTimestampsImu[seq][i] * 1e9) << " "
+           << vAcc[seq][i].x << " " << vAcc[seq][i].y << " " << vAcc[seq][i].z
+           << " " << vGyro[seq][i].x << " " << vGyro[seq][i].y << " "
+           << vGyro[seq][i].z << endl;
+    }
+    fout.close();
 #endif
 
-        nImages[seq] = vstrimg[0].size();
-        tot_images += nImages[seq];
-        nImu[seq] = vtmimu[0].size();
+    nImages[seq] = vstrimg[0].size();
+    tot_images += nImages[seq];
+    nImu[seq] = vtmimu[0].size();
 
-        if((nImages[seq]<=0)||(nImu[seq]<=0))
-        {
-            cerr << "ERROR: Failed to load images or IMU for sequence" << seq << endl;
-            return 1;
-        }
-
-        // Find first imu to be considered, supposing imu measurements start first
-
-        while(vtmimu[0][first_imu[seq]]<=vtmcam[0][0])
-            first_imu[seq]++;
-        if (0 < first_imu[seq]) first_imu[seq]--; // first imu measurement to be considered
-
-        while(vtmcam[0][nImages[seq] - 1] > vtmimu[0].back()) {
-            nImages[seq]--;
-        }
-
-        cout<<"first_imu[seq]="<<first_imu[seq]<<", after deleted, nImages[seq]="<<nImages[seq]<<endl;
+    if ((nImages[seq] <= 0) || (nImu[seq] <= 0)) {
+      cerr << "ERROR: Failed to load images or IMU for sequence" << seq << endl;
+      return 1;
     }
+
+    // Find first imu to be considered, supposing imu measurements start first
+
+    while (vtmimu[0][first_imu[seq]] <= vtmcam[0][0])
+      first_imu[seq]++;
+    if (0 < first_imu[seq])
+      first_imu[seq]--; // first imu measurement to be considered
+
+    while (vtmcam[0][nImages[seq] - 1] > vtmimu[0].back()) {
+      nImages[seq]--;
+    }
+
+    AlignImgs(vtmcam, vstrimg);
+    nImages[seq] = vtmcam[0].size();
+
+    cout << "first_imu[seq]=" << first_imu[seq]
+         << ", after deleted, nImages[seq]=" << nImages[seq] << endl;
+  }
 
     // Read rectification parameters
     cv::FileStorage fsSettings(argv[2], cv::FileStorage::READ);
@@ -246,7 +298,6 @@ int main(int argc, char **argv)
               //                ims[i] = cv::imread(vstrimg[i][ni], cv::IMREAD_GRAYSCALE);
               //              }
               ims[1] = cv::imread(vstrimg[3][ni], cv::IMREAD_GRAYSCALE);
-              CV_Assert(vtmcam[3][ni] == vtmcam[0][ni]);
             }
             // clahe
 //            clahe->apply(imLeft,imLeft);
