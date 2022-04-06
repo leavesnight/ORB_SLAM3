@@ -227,6 +227,8 @@ int main(int argc, char **argv)
         cerr << "ERROR: Wrong path to settings" << endl;
         return -1;
     }
+    cv::FileNode fnimutd = fsSettings["Camera.delaytoimu"];
+    double td = fnimutd.empty() ? 0 : (double)fnimutd;
     cv::FileNode fnimumode = fsSettings["IMU.mode"];
     int mode_imu = fnimumode.empty() ? 0 : (int)fnimumode;
     if (1 == (int)mode_imu) { // 1 menas -gy,gxgz/-ay,axaz
@@ -313,12 +315,14 @@ int main(int argc, char **argv)
             vImuMeas.clear();
 
             if(ni>0) {
-              while (vtmimu[0][first_imu[seq]] <= vtmcam[0][ni]) {
+              auto tm_imu = vtmimu[0][first_imu[seq]] + td;
+              while (tm_imu <= vtmcam[0][ni]) {
+                tm_imu = vtmimu[0][first_imu[seq]] + td;
                 vImuMeas.push_back(ORB_SLAM3::IMU::Point(
                     vacc[0][first_imu[seq]].x, vacc[0][first_imu[seq]].y,
                     vacc[0][first_imu[seq]].z, vgyr[0][first_imu[seq]].x,
                     vgyr[0][first_imu[seq]].y, vgyr[0][first_imu[seq]].z,
-                    vtmimu[0][first_imu[seq]]));
+                    tm_imu));
                 first_imu[seq]++;
               }
             }
