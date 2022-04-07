@@ -1527,6 +1527,9 @@ bool Tracking::PredictStateIMU()
         mCurrentFrame.mPredVwb = Vwb2.clone();
         mCurrentFrame.mImuBias = mpLastKeyFrame->GetImuBias();
         mCurrentFrame.mPredBias = mCurrentFrame.mImuBias;
+
+      cout << "check bgba="<<mCurrentFrame.mImuBias.bwx<<" "<<mCurrentFrame.mImuBias.bwy<<" "<<mCurrentFrame.mImuBias.bwz<<
+           ","<<mCurrentFrame.mImuBias.bax<<" "<<mCurrentFrame.mImuBias.bay<<" "<<mCurrentFrame.mImuBias.baz<<endl;
         return true;
     }
     else if(!mbMapUpdated)
@@ -1547,6 +1550,9 @@ bool Tracking::PredictStateIMU()
         mCurrentFrame.mPredVwb = Vwb2.clone();
         mCurrentFrame.mImuBias =mLastFrame.mImuBias;
         mCurrentFrame.mPredBias = mCurrentFrame.mImuBias;
+
+      cout << "check bgba="<<mCurrentFrame.mImuBias.bwx<<" "<<mCurrentFrame.mImuBias.bwy<<" "<<mCurrentFrame.mImuBias.bwz<<
+           ","<<mCurrentFrame.mImuBias.bax<<" "<<mCurrentFrame.mImuBias.bay<<" "<<mCurrentFrame.mImuBias.baz<<endl;
         return true;
     }
     else
@@ -2207,6 +2213,7 @@ void Tracking::StereoInitialization()
         }
         else
             mCurrentFrame.SetPose(cv::Mat::eye(4,4,CV_32F));
+        cout << "check init tm = " << mCurrentFrame.mTimeStamp << endl;
 
         // Create KeyFrame
         KeyFrame* pKFini = new KeyFrame(mCurrentFrame,mpAtlas->GetCurrentMap(),mpKeyFrameDB);
