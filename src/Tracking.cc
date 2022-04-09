@@ -2611,11 +2611,10 @@ bool Tracking::TrackReferenceKeyFrame()
 
                 mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
                 mCurrentFrame.mvbOutlier[i]=false;
-                if(i < mCurrentFrame.Nleft){
-                    pMP->mbTrackInView = false;
-                }
-                else{
-                    pMP->mbTrackInViewR = false;
+                if (i < mCurrentFrame.Nleft) {
+                  pMP->mbTrackInView = false;
+                } else {
+                  pMP->mbTrackInViewR = false;
                 }
                 pMP->mbTrackInView = false;
                 pMP->mnLastFrameSeen = mCurrentFrame.mnId;
@@ -2763,28 +2762,23 @@ bool Tracking::TrackWithMotionModel()
 
     // Discard outliers
     int nmatchesMap = 0;
-    for(int i =0; i<mCurrentFrame.N; i++)
-    {
-        if(mCurrentFrame.mvpMapPoints[i])
-        {
-            if(mCurrentFrame.mvbOutlier[i])
-            {
-                MapPoint* pMP = mCurrentFrame.mvpMapPoints[i];
+    for(int i =0; i<mCurrentFrame.N; i++) {
+      if (mCurrentFrame.mvpMapPoints[i]) {
+        if (mCurrentFrame.mvbOutlier[i]) {
+          MapPoint* pMP = mCurrentFrame.mvpMapPoints[i];
 
-                mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
-                mCurrentFrame.mvbOutlier[i]=false;
-                if(i < mCurrentFrame.Nleft){
-                    pMP->mbTrackInView = false;
-                }
-                else{
-                    pMP->mbTrackInViewR = false;
-                }
-                pMP->mnLastFrameSeen = mCurrentFrame.mnId;
-                nmatches--;
-            }
-            else if(mCurrentFrame.mvpMapPoints[i]->Observations()>0)
-                nmatchesMap++;
-        }
+          mCurrentFrame.mvpMapPoints[i] = static_cast<MapPoint*>(NULL);
+          mCurrentFrame.mvbOutlier[i] = false;
+          if (i < mCurrentFrame.Nleft) {
+            pMP->mbTrackInView = false;
+          } else {
+            pMP->mbTrackInViewR = false;
+          }
+          pMP->mnLastFrameSeen = mCurrentFrame.mnId;
+          nmatches--;
+        } else if (mCurrentFrame.mvpMapPoints[i]->Observations() > 0)
+          nmatchesMap++;
+      }
     }
 
     if(mbOnlyTracking)
@@ -2896,7 +2890,7 @@ bool Tracking::TrackLocalMap()
                 else
                     mnMatchesInliers++;
             }
-            else if(mSensor==System::STEREO)
+            else if(mSensor==System::STEREO)// || mSensor == System::IMU_STEREO)
                 mCurrentFrame.mvpMapPoints[i] = static_cast<MapPoint*>(NULL);
         }
     }
@@ -3220,23 +3214,26 @@ void Tracking::CreateNewKeyFrame()
 void Tracking::SearchLocalPoints()
 {
     // Do not search map points already matched
-    for(vector<MapPoint*>::iterator vit=mCurrentFrame.mvpMapPoints.begin(), vend=mCurrentFrame.mvpMapPoints.end(); vit!=vend; vit++)
-    {
-        MapPoint* pMP = *vit;
-        if(pMP)
-        {
-            if(pMP->isBad())
-            {
-                *vit = static_cast<MapPoint*>(NULL);
-            }
-            else
-            {
-                pMP->IncreaseVisible();
-                pMP->mnLastFrameSeen = mCurrentFrame.mnId;
-                pMP->mbTrackInView = false;
-                pMP->mbTrackInViewR = false;
-            }
+    size_t i = 0;
+    for(vector<MapPoint*>::iterator vit=mCurrentFrame.mvpMapPoints.begin(), vend=mCurrentFrame.mvpMapPoints.end(); vit!=vend; vit++, ++i) {
+      MapPoint* pMP = *vit;
+      if (pMP) {
+        if (pMP->isBad()) {
+          *vit = static_cast<MapPoint*>(NULL);
+        } else {
+          pMP->IncreaseVisible();
+          pMP->mnLastFrameSeen = mCurrentFrame.mnId;
+
+//          if (-1 != mCurrentFrame.Nleft) {
+//            if (i < mCurrentFrame.Nleft) {
+              pMP->mbTrackInView = false;
+//            } else {
+              pMP->mbTrackInViewR = false;
+//            }
+//          } else
+//            pMP->mbTrackInView = false;
         }
+      }
     }
 
     int nToMatch=0;
@@ -3263,35 +3260,33 @@ void Tracking::SearchLocalPoints()
     }
   cout << "extra init=" << nToMatch << endl;
 
-    if(nToMatch>0)
-    {
-        ORBmatcher matcher(0.8);
-        int th = 1;
-        if(mSensor==System::RGBD)
-            th=3;
-        if(mpAtlas->isImuInitialized())
-        {
-            if(mpAtlas->GetCurrentMap()->GetIniertialBA2())
-                th=2;
-            else
-                th=3;
-        } // delete useless !mpAtlas->isImuInitialized()
-        // old ORB2 don't use this
-//        else if((mSensor==System::IMU_MONOCULAR || mSensor==System::IMU_STEREO))
-//        {
-//            th=10;
-//        }
+  if(nToMatch>0) {
+    ORBmatcher matcher(0.8);
+    int th = 1;
+    if (mSensor == System::RGBD) th = 3;
+    if (mpAtlas->isImuInitialized()) {
+      if (mpAtlas->GetCurrentMap()->GetIniertialBA2())
+        th = 2;
+      else
+        th = 3;
+    }  // delete useless !mpAtlas->isImuInitialized()
+    // old ORB2 don't use this
+    //        else if((mSensor==System::IMU_MONOCULAR || mSensor==System::IMU_STEREO))
+    //        {
+    //            th=10;
+    //        }
 
-        // If the camera has been relocalised recently, perform a coarser search
-        if(mCurrentFrame.mnId<mnLastRelocFrameId+2)
-            th=5;
+    // If the camera has been relocalised recently, perform a coarser search
+    if (mCurrentFrame.mnId < mnLastRelocFrameId + 2) th = 5;
 
-        if(mState==LOST || mState==RECENTLY_LOST) // Lost for less than 1 second
-            th=15;
+    if (mState == LOST || mState == RECENTLY_LOST)  // Lost for less than 1 second
+      th = 15;
 
-        int matches = matcher.SearchByProjection(mCurrentFrame, mvpLocalMapPoints, th, mpLocalMapper->mbFarPoints, mpLocalMapper->mThFarPoints);
-    }
-  cout << "befopt2 extra=" << nToMatch << endl;
+    int matches = matcher.SearchByProjection(mCurrentFrame, mvpLocalMapPoints, th, mpLocalMapper->mbFarPoints,
+                                             mpLocalMapper->mThFarPoints);
+
+    cout << "befopt2 extra=" << matches << endl;
+  }
 }
 
 void Tracking::UpdateLocalMap()
@@ -3455,7 +3450,7 @@ void Tracking::UpdateLocalKeyFrames()
             {
                 mvpLocalKeyFrames.push_back(pParent);
                 pParent->mnTrackReferenceForFrame=mCurrentFrame.mnId;
-                break;
+                 break;
             }
         }
     }

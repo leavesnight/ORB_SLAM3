@@ -92,6 +92,7 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
         Vw = F.mVw.clone();
 
     mImuBias = F.mImuBias;
+    CV_Assert(!F.mTcw.empty());
     SetPose(F.mTcw);
 
     mnOriginMapId = pMap->GetId();

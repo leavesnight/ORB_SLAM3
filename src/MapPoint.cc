@@ -437,10 +437,30 @@ tuple<int,int> MapPoint::GetIndexInKeyFrame(KeyFrame *pKF)
         return tuple<int,int>(-1,-1);
 }
 
-bool MapPoint::IsInKeyFrame(KeyFrame *pKF)
-{
-    unique_lock<mutex> lock(mMutexFeatures);
-    return (mObservations.count(pKF));
+bool MapPoint::IsInKeyFrame(KeyFrame *pKF, size_t idx, size_t cami) {
+  unique_lock<mutex> lock(mMutexFeatures);
+  // return (mObservations.count(pKF));
+  auto iter = mObservations.find(pKF);
+  if (mObservations.end() == iter) return false;
+  if (-1 == idx) {
+    if (-1 == cami)
+      return true;
+    else {
+      if (0 == cami)
+        return (-1 != get<0>(iter->second));
+      else
+        return (-1 != get<1>(iter->second));
+    }
+  } else if (get<0>(iter->second) != idx && get<1>(iter->second) != idx)
+    return false;
+  else if (-1 == cami)
+    return true;
+  else {
+    if (0 == cami)
+      return get<0>(iter->second) == idx;
+    else
+      return get<1>(iter->second) == idx;
+  }
 }
 
 void MapPoint::UpdateNormalAndDepth()
