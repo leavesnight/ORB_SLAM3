@@ -3009,7 +3009,6 @@ bool Tracking::NeedNewKeyFrame()
     if(mSensor==System::MONOCULAR)
         thRefRatio = 0.9f;
 
-  if(mpCamera2) thRefRatio = 0.75f;
 //    if(mpCamera2) thRefRatio = 0.75f;
 
     if(mSensor==System::IMU_MONOCULAR)
@@ -3452,7 +3451,7 @@ void Tracking::UpdateLocalKeyFrames()
             {
                 mvpLocalKeyFrames.push_back(pParent);
                 pParent->mnTrackReferenceForFrame=mCurrentFrame.mnId;
-                 break;
+                //break;
             }
         }
     }
