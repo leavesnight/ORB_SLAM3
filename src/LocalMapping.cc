@@ -27,6 +27,10 @@
 #include<mutex>
 #include<chrono>
 
+#define NO_GBA_THREAD
+#define NO_IMU_INIT2
+#define NO_LOCALMAP_PROCESS
+
 namespace ORB_SLAM3
 {
 
@@ -90,6 +94,7 @@ void LocalMapping::Run()
             vdKFInsert_ms.push_back(timeProcessKF);
 #endif
 
+#ifndef NO_LOCALMAP_PROCESS
             // Check recent MapPoints
             MapPointCulling();
 #ifdef REGISTER_TIMES
@@ -100,14 +105,17 @@ void LocalMapping::Run()
 #endif
             // Triangulate new MapPoints
             CreateNewMapPoints();
+#endif
 
             mbAbortBA = false;
 
+#ifndef NO_LOCALMAP_PROCESS
             if(!CheckNewKeyFrames())
             {
                 // Find more matches in neighbor keyframes and fuse point duplications
                 SearchInNeighbors();
             }
+#endif
 
 #ifdef REGISTER_TIMES
             std::chrono::steady_clock::time_point time_EndMPCreation = std::chrono::steady_clock::now();
@@ -127,29 +135,35 @@ void LocalMapping::Run()
                 if(mpAtlas->KeyFramesInMap()>2)
                 {
 
+                  const bool bno_imu_lba = true;//false; //
                     if(mbInertial && mpCurrentKeyFrame->GetMap()->isImuInitialized())
                     {
-                        float dist = cv::norm(mpCurrentKeyFrame->mPrevKF->GetCameraCenter() - mpCurrentKeyFrame->GetCameraCenter()) +
-                                cv::norm(mpCurrentKeyFrame->mPrevKF->mPrevKF->GetCameraCenter() - mpCurrentKeyFrame->mPrevKF->GetCameraCenter());
+                      if (!bno_imu_lba) {
+                        float dist = cv::norm(mpCurrentKeyFrame->mPrevKF->GetCameraCenter() -
+                                              mpCurrentKeyFrame->GetCameraCenter()) +
+                                     cv::norm(mpCurrentKeyFrame->mPrevKF->mPrevKF->GetCameraCenter() -
+                                              mpCurrentKeyFrame->mPrevKF->GetCameraCenter());
 
-                        if(dist>0.05)
-                            mTinit += mpCurrentKeyFrame->mTimeStamp - mpCurrentKeyFrame->mPrevKF->mTimeStamp;
-                        if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2())
-                        {
-                            if((mTinit<10.f) && (dist<0.02))
-                            {
-                                cout << "Not enough motion for initializing. Reseting..." << endl;
-                                unique_lock<mutex> lock(mMutexReset);
-                                mbResetRequestedActiveMap = true;
-                                mpMapToReset = mpCurrentKeyFrame->GetMap();
-                                mbBadImu = true;
-                            }
+                        if (dist > 0.05)
+                          mTinit += mpCurrentKeyFrame->mTimeStamp - mpCurrentKeyFrame->mPrevKF->mTimeStamp;
+                        if (!mpCurrentKeyFrame->GetMap()->GetIniertialBA2()) {
+                          if ((mTinit < 10.f) && (dist < 0.02)) {
+                            cout << "Not enough motion for initializing. Reseting..." << endl;
+                            unique_lock<mutex> lock(mMutexReset);
+                            mbResetRequestedActiveMap = true;
+                            mpMapToReset = mpCurrentKeyFrame->GetMap();
+                            mbBadImu = true;
+                          }
                         }
 
-                        bool bLarge = ((mpTracker->GetMatchesInliers()>75)&&mbMonocular)||((mpTracker->GetMatchesInliers()>100)&&!mbMonocular);
-                        Optimizer::LocalInertialBA(mpCurrentKeyFrame, &mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA, bLarge, !mpCurrentKeyFrame->GetMap()->GetIniertialBA2());
+                        bool bLarge = ((mpTracker->GetMatchesInliers() > 75) && mbMonocular) ||
+                                      ((mpTracker->GetMatchesInliers() > 100) && !mbMonocular);
+                        Optimizer::LocalInertialBA(mpCurrentKeyFrame, &mbAbortBA, mpCurrentKeyFrame->GetMap(),
+                                                   num_FixedKF_BA, num_OptKF_BA, num_MPs_BA, num_edges_BA, bLarge,
+                                                   !mpCurrentKeyFrame->GetMap()->GetIniertialBA2());
                         b_doneLBA = true;
-                        //CV_Assert(0);
+                        // CV_Assert(0);
+                      }
                     }
                     else
                     {
@@ -188,9 +202,10 @@ void LocalMapping::Run()
                         InitializeIMU(1e2, 1e5, true);
                 }
 
-
+#ifndef NO_LOCALMAP_PROCESS
                 // Check redundant local Keyframes
                 KeyFrameCulling();
+#endif
 
 #ifdef REGISTER_TIMES
                 std::chrono::steady_clock::time_point time_EndKFCulling = std::chrono::steady_clock::now();
@@ -199,6 +214,7 @@ void LocalMapping::Run()
                 vdKFCullingSync_ms.push_back(timeKFCulling_ms);
 #endif
 
+#ifndef NO_IMU_INIT2
                 if ((mTinit<100.0f) && mbInertial)//0&& can let this don't use imu
                 {
                     if(mpCurrentKeyFrame->GetMap()->isImuInitialized() && mpTracker->mState==Tracking::OK)
@@ -244,6 +260,7 @@ void LocalMapping::Run()
                         }
                     }
                 }
+#endif
             }
 
 #ifdef REGISTER_TIMES
@@ -251,8 +268,9 @@ void LocalMapping::Run()
             vdKFCulling_ms.push_back(timeKFCulling_ms);
 #endif
 
-
+#ifndef NO_GBA_THREAD
             mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);//denote this can avoid loop close
+#endif
 
 
 #ifdef REGISTER_TIMES

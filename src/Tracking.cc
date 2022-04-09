@@ -39,6 +39,8 @@
 
 using namespace std;
 
+//#define NO_LBA_THREAD
+
 namespace ORB_SLAM3
 {
 
@@ -2001,11 +2003,11 @@ void Tracking::Track()
             if (mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO)
             {
                 Verbose::PrintMess("Track lost for less than one second...", Verbose::VERBOSITY_NORMAL);
-//                if(!pCurrentMap->isImuInitialized() || !pCurrentMap->GetIniertialBA2())
-//                {
+                if(!pCurrentMap->isImuInitialized())// || !pCurrentMap->GetIniertialBA2())
+                {
                     cout << "IMU is not or recently initialized. Reseting active map..." << endl;
-//                    mpSystem->ResetActiveMap();
-//                }
+                    mpSystem->ResetActiveMap();
+                }
 
                 mState = RECENTLY_LOST;//LOST;//LOST for no imu mode
             }
@@ -2095,9 +2097,6 @@ void Tracking::Track()
             std::chrono::steady_clock::time_point time_StartNewKF = std::chrono::steady_clock::now();
 #endif
             bool bNeedKF = NeedNewKeyFrame();
-
-
-
 
             // Check if we need to insert a new keyframe
             if(bNeedKF && (bOK|| (mState==RECENTLY_LOST && (mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO))))
@@ -2943,6 +2942,8 @@ bool Tracking::TrackLocalMap()
 
 bool Tracking::NeedNewKeyFrame()
 {
+#define ORB3_IMU_UNINIT_KF_STRATEGY
+#ifdef ORB3_IMU_UNINIT_KF_STRATEGY
     if(((mSensor == System::IMU_MONOCULAR) || (mSensor == System::IMU_STEREO)) && !mpAtlas->GetCurrentMap()->isImuInitialized())
     {
         if (mSensor == System::IMU_MONOCULAR && (mCurrentFrame.mTimeStamp-mpLastKeyFrame->mTimeStamp)>=0.25)
@@ -2952,6 +2953,7 @@ bool Tracking::NeedNewKeyFrame()
         else
             return false;
     }
+#endif
 
     if(mbOnlyTracking)
         return false;
@@ -3013,7 +3015,8 @@ bool Tracking::NeedNewKeyFrame()
     if(mSensor==System::MONOCULAR)
         thRefRatio = 0.9f;
 
-    if(mpCamera2) thRefRatio = 0.75f;
+  if(mpCamera2) thRefRatio = 0.75f;
+//    if(mpCamera2) thRefRatio = 0.75f;
 
     if(mSensor==System::IMU_MONOCULAR)
     {
@@ -3041,10 +3044,13 @@ bool Tracking::NeedNewKeyFrame()
             if ((mCurrentFrame.mTimeStamp-mpLastKeyFrame->mTimeStamp)>=0.5)
                 c3 = true;
         }
-        else if (mSensor==System::IMU_STEREO)
-        {
-            if ((mCurrentFrame.mTimeStamp-mpLastKeyFrame->mTimeStamp)>=0.5)
-                c3 = true;
+        else if (mSensor==System::IMU_STEREO) {
+          // TODO(zzh): check key for ODOMOK insert strategy!
+          if ((mCurrentFrame.mTimeStamp - mpLastKeyFrame->mTimeStamp) >= 0.5/* && bLocalMappingIdle &&
+              mnMatchesInliers > 15*/)
+            c3 = true;
+//          if (mState == RECENTLY_LOST)
+//            c3 = (mCurrentFrame.mTimeStamp - mpLastKeyFrame->mTimeStamp) >= 0.5 && bLocalMappingIdle;
         }
     }
 
@@ -3200,8 +3206,9 @@ void Tracking::CreateNewKeyFrame()
         }
     }
 
-
+#ifndef NO_LBA_THREAD
     mpLocalMapper->InsertKeyFrame(pKF);
+#endif
 
     mpLocalMapper->SetNotStop(false);
 
