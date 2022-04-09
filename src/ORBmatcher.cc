@@ -209,6 +209,9 @@ int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint*> &vpMapPoint
             }
         }
     }
+
+    cout << "left,right="<<left<<","<<right<<endl;
+
     return nmatches;
 }
 

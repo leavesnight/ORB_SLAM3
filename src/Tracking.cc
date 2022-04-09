@@ -3054,6 +3054,8 @@ bool Tracking::NeedNewKeyFrame()
     else
         c4=false;
 
+    cout << "check inliers="<<mnMatchesInliers<<"<"<<nRefMatches<<","<<(int)bNeedToInsertClose<<endl;
+    cout << "check each cond="<<(int)c4<<" "<<(int)c3<<" "<<(int)c2<<" c1:"<<int(c1a)<<","<<int(c1b)<<","<<int(c1c)<<endl;
     if(((c1a||c1b||c1c) && c2)||c3 ||c4)
     {
         // If the mapping accepts keyframes, insert keyframe.
