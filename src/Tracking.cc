@@ -2611,12 +2611,12 @@ bool Tracking::TrackReferenceKeyFrame()
 
                 mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
                 mCurrentFrame.mvbOutlier[i]=false;
-                if (i < mCurrentFrame.Nleft) {
+//                if (i < mCurrentFrame.Nleft) {
                   pMP->mbTrackInView = false;
-                } else {
+//                } else {
                   pMP->mbTrackInViewR = false;
-                }
-                pMP->mbTrackInView = false;
+//                }
+//                pMP->mbTrackInView = false;
                 pMP->mnLastFrameSeen = mCurrentFrame.mnId;
                 nmatches--;
             }
@@ -2769,11 +2769,11 @@ bool Tracking::TrackWithMotionModel()
 
           mCurrentFrame.mvpMapPoints[i] = static_cast<MapPoint*>(NULL);
           mCurrentFrame.mvbOutlier[i] = false;
-          if (i < mCurrentFrame.Nleft) {
+//          if (i < mCurrentFrame.Nleft) {
             pMP->mbTrackInView = false;
-          } else {
+//          } else {
             pMP->mbTrackInViewR = false;
-          }
+//          }
           pMP->mnLastFrameSeen = mCurrentFrame.mnId;
           nmatches--;
         } else if (mCurrentFrame.mvpMapPoints[i]->Observations() > 0)

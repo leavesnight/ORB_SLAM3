@@ -53,7 +53,7 @@ int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint*> &vpMapPoint
         if(!pMP->mbTrackInView && !pMP->mbTrackInViewR)
             continue;
 
-        if(1&&bFarPoints && pMP->mTrackDepth>thFarPoints)
+        if(0&&bFarPoints && pMP->mTrackDepth>thFarPoints)
             continue;
 
         if(pMP->isBad())
@@ -129,7 +129,7 @@ int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint*> &vpMapPoint
                     if(bestLevel!=bestLevel2 || bestDist<=mfNNratio*bestDist2){
                         F.mvpMapPoints[bestIdx]=pMP;
 
-                        if(1&&F.Nleft != -1 && F.mvLeftToRightMatch[bestIdx] != -1){ //Also match with the stereo observation at right camera
+                        if(0&&F.Nleft != -1 && F.mvLeftToRightMatch[bestIdx] != -1){ //Also match with the stereo observation at right camera
                             F.mvpMapPoints[F.mvLeftToRightMatch[bestIdx] + F.Nleft] = pMP;
                             nmatches++;
                             right++;
@@ -196,7 +196,7 @@ int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint*> &vpMapPoint
                     if(bestLevel==bestLevel2 && bestDist>mfNNratio*bestDist2)
                         continue;
 
-                    if(1&&F.Nleft != -1 && F.mvRightToLeftMatch[bestIdx] != -1){ //Also match with the stereo observation at right camera
+                    if(0&&F.Nleft != -1 && F.mvRightToLeftMatch[bestIdx] != -1){ //Also match with the stereo observation at right camera
                         F.mvpMapPoints[F.mvRightToLeftMatch[bestIdx]] = pMP;
                         nmatches++;
                         left++;
