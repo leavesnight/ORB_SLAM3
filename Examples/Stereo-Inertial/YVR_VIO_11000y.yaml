@@ -21,9 +21,9 @@ Encoder.sigma:
 
 # IMU noise
 IMU.NoiseGyro: 4.887e-5
-IMU.NoiseAcc: 6.8e-3 #6.867e-4
+IMU.NoiseAcc: 6.8e-2 #6.867e-4
 IMU.GyroWalk: 1.e-5 #1.e-6
-IMU.AccWalk: 1.e-3 #1.e-4#1.e-5
+IMU.AccWalk: 1.e-2 #1.e-4#1.e-5
 IMU.Frequency: 1000
 
 # acc=acc*IMU.dMultiplyG, if below is 9.80665 meaning acc=acc*9.80665, but internal referenced G used for prior is still 9.810

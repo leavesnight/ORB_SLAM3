@@ -1755,7 +1755,7 @@ void Tracking::Track()
         mbMapUpdated = true;
     }
 
-
+    cout << "curf tm="<<mCurrentFrame.mTimeStamp<<endl;
     if(mState==NOT_INITIALIZED)
     {
         if(mSensor==System::STEREO || mSensor==System::RGBD || mSensor==System::IMU_STEREO)
@@ -2593,8 +2593,6 @@ bool Tracking::TrackReferenceKeyFrame()
     mCurrentFrame.SetPose(mLastFrame.mTcw);
 
     //mCurrentFrame.PrintPointDistribution();
-
-  cout << "bef opt="<<nmatches<<endl;
     // cout << " TrackReferenceKeyFrame mLastFrame.mTcw:  " << mLastFrame.mTcw << endl;
     int num_inliers = Optimizer::PoseOptimization(&mCurrentFrame);
   cout << "inliers="<<num_inliers<<endl;
@@ -2706,8 +2704,6 @@ bool Tracking::TrackWithMotionModel()
     // Update last frame pose according to its reference keyframe
     // Create "visual odometry" points if in Localization Mode
     UpdateLastFrame();
-
-
 
     if (mpAtlas->isImuInitialized() && (mCurrentFrame.mnId>mnLastRelocFrameId+mnFramesToResetIMU))
     {
@@ -2898,7 +2894,7 @@ bool Tracking::TrackLocalMap()
     // Decide if the tracking was succesful
     // More restrictive if there was a relocalization recently
     mpLocalMapper->mnMatchesInliers=mnMatchesInliers;
-    cout << "check inliers_map="<<mnMatchesInliers<<endl;
+    cout << "inliers_map="<<mnMatchesInliers<<endl;
     if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mnMatchesInliers<50)
         return false;
 

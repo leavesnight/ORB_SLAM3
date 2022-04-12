@@ -152,6 +152,7 @@ int main(int argc, char **argv)
           }
         }
       }
+      AlignImgs(vtmcam, vstrimg);
       cout << "LOADED!" << endl;
 
       cout << "Loading IMU for sequence " << seq << "...";
@@ -212,9 +213,6 @@ int main(int argc, char **argv)
     while (vtmcam[0][nImages[seq] - 1] > vtmimu[0].back()) {
       nImages[seq]--;
     }
-
-    AlignImgs(vtmcam, vstrimg);
-    nImages[seq] = vtmcam[0].size();
 
     cout << "first_imu[seq]=" << first_imu[seq]
          << ", after deleted, nImages[seq]=" << nImages[seq] << endl;
