@@ -27,9 +27,9 @@
 #include<mutex>
 #include<chrono>
 
-#define NO_GBA_THREAD
-#define NO_IMU_INIT2
-#define NO_LOCALMAP_PROCESS
+//#define NO_GBA_THREAD
+//#define NO_IMU_INIT2
+//#define NO_LOCALMAP_PROCESS
 
 namespace ORB_SLAM3
 {
@@ -135,7 +135,7 @@ void LocalMapping::Run()
                 if(mpAtlas->KeyFramesInMap()>2)
                 {
 
-                  const bool bno_imu_lba = true;//false; //
+                  const bool bno_imu_lba = false;//true;//false; //
                     if(mbInertial && mpCurrentKeyFrame->GetMap()->isImuInitialized())
                     {
                       if (!bno_imu_lba) {
