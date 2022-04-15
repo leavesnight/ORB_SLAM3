@@ -28,7 +28,7 @@
 #include<chrono>
 
 //#define NO_GBA_THREAD
-#define NO_IMU_INIT2
+//#define NO_IMU_INIT2
 //#define NO_LOCALMAP_PROCESS
 
 namespace ORB_SLAM3
