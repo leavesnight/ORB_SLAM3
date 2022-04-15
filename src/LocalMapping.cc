@@ -78,6 +78,7 @@ void LocalMapping::Run()
         // Check if there are keyframes in the queue
         if(CheckNewKeyFrames() && !mbBadImu)
         {
+          chrono::steady_clock::time_point t0 = chrono::steady_clock::now();
 
 #ifdef REGISTER_TIMES
             double timeLBA_ms = 0;
@@ -87,6 +88,7 @@ void LocalMapping::Run()
 #endif
             // BoW conversion and insertion in Map
             ProcessNewKeyFrame();
+          cout<<"Used time in ProcessKF()="<<chrono::duration_cast<chrono::duration<double>>(chrono::steady_clock::now() - t0).count()<< endl;
 #ifdef REGISTER_TIMES
             std::chrono::steady_clock::time_point time_EndProcessKF = std::chrono::steady_clock::now();
 
@@ -97,6 +99,7 @@ void LocalMapping::Run()
 #ifndef NO_LOCALMAP_PROCESS
             // Check recent MapPoints
             MapPointCulling();
+          cout<<"Used time in MapCulling()="<<chrono::duration_cast<chrono::duration<double>>(chrono::steady_clock::now() - t0).count()<< endl;
 #ifdef REGISTER_TIMES
             std::chrono::steady_clock::time_point time_EndMPCulling = std::chrono::steady_clock::now();
 
@@ -105,6 +108,7 @@ void LocalMapping::Run()
 #endif
             // Triangulate new MapPoints
             CreateNewMapPoints();
+          cout<<"Used time in CreateNewMP()="<<chrono::duration_cast<chrono::duration<double>>(chrono::steady_clock::now() - t0).count()<< endl;
 #endif
 
             mbAbortBA = false;
@@ -114,6 +118,7 @@ void LocalMapping::Run()
             {
                 // Find more matches in neighbor keyframes and fuse point duplications
                 SearchInNeighbors();
+              cout<<"Used time in SIN()="<<chrono::duration_cast<chrono::duration<double>>(chrono::steady_clock::now() - t0).count()<< endl;
             }
 #endif
 
@@ -134,6 +139,7 @@ void LocalMapping::Run()
             {
                 if(mpAtlas->KeyFramesInMap()>2)
                 {
+                  chrono::steady_clock::time_point t1 = chrono::steady_clock::now();
 
                   const bool bno_imu_lba = false; //true;//
                     if(mbInertial && mpCurrentKeyFrame->GetMap()->isImuInitialized())
@@ -171,6 +177,7 @@ void LocalMapping::Run()
                         b_doneLBA = true;
                     }
 
+                  cout<<"Used time in localBA="<<chrono::duration_cast<chrono::duration<double>>(chrono::steady_clock::now() - t1).count()<< endl;
                 }
 #ifdef REGISTER_TIMES
                 std::chrono::steady_clock::time_point time_EndLBA = std::chrono::steady_clock::now();
@@ -279,6 +286,9 @@ void LocalMapping::Run()
             double timeLocalMap = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndLocalMap - time_StartProcessKF).count();
             vdLMTotal_ms.push_back(timeLocalMap);
 #endif
+          cout<<"Used time in localmapping="
+              << chrono::duration_cast<chrono::duration<double>>(chrono::steady_clock::now() - t0).count()
+              << endl;
         }
         else if(Stop() && !mbBadImu)
         {
@@ -326,6 +336,7 @@ void LocalMapping::ProcessNewKeyFrame()
         mpCurrentKeyFrame = mlNewKeyFrames.front();
         mlNewKeyFrames.pop_front();
     }
+  cout << "Used time,tm=" << mpCurrentKeyFrame->mTimeStamp << endl;
 
     // Compute Bags of Words structures
     mpCurrentKeyFrame->ComputeBoW();
@@ -752,7 +763,7 @@ void LocalMapping::CreateNewMapPoints()
             cv::Mat x3D_(x3D);
             MapPoint* pMP = new MapPoint(x3D_,mpCurrentKeyFrame,mpAtlas->GetCurrentMap());
 
-            pMP->AddObservation(mpCurrentKeyFrame,idx1);            
+            pMP->AddObservation(mpCurrentKeyFrame,idx1);
             pMP->AddObservation(pKF2,idx2);
 
             mpCurrentKeyFrame->AddMapPoint(pMP,idx1);
@@ -1278,7 +1289,7 @@ bool LocalMapping::CheckFinish()
 void LocalMapping::SetFinish()
 {
     unique_lock<mutex> lock(mMutexFinish);
-    mbFinished = true;    
+    mbFinished = true;
     unique_lock<mutex> lock2(mMutexStop);
     mbStopped = true;
 }
