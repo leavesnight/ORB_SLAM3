@@ -506,6 +506,7 @@ void MapPoint::UpdateNormalAndDepth()
 
     cv::Mat PC = Pos - pRefKF->GetCameraCenter();
     const float dist = cv::norm(PC);
+    if (INFINITY == mTrackDepth) mTrackDepth = dist;
 
     tuple<int ,int> indexes = observations[pRefKF];
     int leftIndex = get<0>(indexes), rightIndex = get<1>(indexes);

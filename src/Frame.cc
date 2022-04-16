@@ -507,7 +507,8 @@ cv::Mat Frame::GetImuPose()
 
 bool Frame::isInFrustum(MapPoint *pMP, float viewingCosLimit)
 {
-  pMP->mTrackDepth = INFINITY;
+  //for lba will also judge it, so cannot reset it here
+  //  pMP->mTrackDepth = INFINITY;
     if(Nleft == -1){
         pMP->mbTrackInView = false;
         pMP->mTrackProjX = -1;

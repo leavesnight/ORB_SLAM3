@@ -4303,6 +4303,7 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
         mVisEdges[(*lit)->mnId] = 0;
     }
 
+    float thresh_depth_close = 10;
     num_MPs = lLocalMapPoints.size();
     for(list<MapPoint*>::iterator lit=lLocalMapPoints.begin(), lend=lLocalMapPoints.end(); lit!=lend; lit++)
     {
@@ -4326,6 +4327,7 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
 
             if(!pKFi->isBad() && pKFi->GetMap() == pCurrentMap)
             {
+              if (thresh_depth_close < pKFi->mThDepth) thresh_depth_close = pKFi->mThDepth;
                 const int leftIndex = get<0>(mit->second);
 
                 cv::KeyPoint kpUn;
@@ -4463,7 +4465,7 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
     {
         EdgeMono* e = vpEdgesMono[i];
         MapPoint* pMP = vpMapPointEdgeMono[i];
-        bool bClose = pMP->mTrackDepth<10.f;
+        bool bClose = pMP->mTrackDepth<thresh_depth_close;
 
         if(pMP->isBad())
             continue;
@@ -6953,7 +6955,7 @@ int Optimizer::PoseInertialOptimizationLastKeyFrame(Frame *pFrame, bool bRecInit
             }
 
             const float chi2 = e->chi2();
-            bool bClose = pFrame->mvpMapPoints[idx]->mTrackDepth<10.f;
+            bool bClose = pFrame->mvpMapPoints[idx]->mTrackDepth<(10 < pFrame->mThDepth ? pFrame->mThDepth : 10);
 
             if((chi2>chi2Mono[it]&&!bClose)||(bClose && chi2>chi2close)||!e->isDepthPositive())
             {
@@ -7354,7 +7356,7 @@ int Optimizer::PoseInertialOptimizationLastFrame(Frame *pFrame, bool bRecInit)
             EdgeMonoOnlyPose* e = vpEdgesMono[i];
 
             const size_t idx = vnIndexEdgeMono[i];
-            bool bClose = pFrame->mvpMapPoints[idx]->mTrackDepth<10.f;
+            bool bClose = pFrame->mvpMapPoints[idx]->mTrackDepth<(10 < pFrame->mThDepth ? pFrame->mThDepth : 10);
 
             if(pFrame->mvbOutlier[idx])
             {
