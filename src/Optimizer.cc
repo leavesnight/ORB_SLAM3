@@ -3963,7 +3963,7 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
 
     int maxOpt=10;
     int opt_it=10;
-    bLarge = false;
+    //bLarge = false;
     if(bLarge)
     {
         maxOpt=25;
@@ -4215,7 +4215,7 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
             vei[i]->setVertex(4,dynamic_cast<g2o::OptimizableGraph::Vertex*>(VP2));
             vei[i]->setVertex(5,dynamic_cast<g2o::OptimizableGraph::Vertex*>(VV2));
 
-	    bRecInit = false;
+	    //bRecInit = false;
             if(i==N-1 || bRecInit)
             {
                 // All inertial residuals are included without robust cost function, but not that one linking the
