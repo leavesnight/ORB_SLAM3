@@ -177,7 +177,12 @@ void LocalMapping::Run()
                         b_doneLBA = true;
                     }
 
-                  cout<<"Used time in localBA="<<chrono::duration_cast<chrono::duration<double>>(chrono::steady_clock::now() - t1).count()<< endl;
+                  static double dt_olba_avg = 0;
+                  static unsigned long num_olba_avg = 0;
+                  double dt_olba = chrono::duration_cast<chrono::duration<double>>(chrono::steady_clock::now() - t1).count();
+                  dt_olba_avg += dt_olba;
+                  ++num_olba_avg;
+                  cout<<"Used time in localBA="<<dt_olba<< ",avg=" << dt_olba_avg / num_olba_avg <<endl;
                 }
 #ifdef REGISTER_TIMES
                 std::chrono::steady_clock::time_point time_EndLBA = std::chrono::steady_clock::now();
@@ -283,8 +288,14 @@ void LocalMapping::Run()
             double timeLocalMap = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndLocalMap - time_StartProcessKF).count();
             vdLMTotal_ms.push_back(timeLocalMap);
 #endif
+          static double dt_lbathread_avg = 0;
+          static unsigned long num_lbathread_avg = 0;
+          double dt_lbathread = chrono::duration_cast<chrono::duration<double>>(chrono::steady_clock::now() - t0).count();
+          dt_lbathread_avg += dt_lbathread;
+          ++num_lbathread_avg;
           cout<<"Used time in localmapping="
-              << chrono::duration_cast<chrono::duration<double>>(chrono::steady_clock::now() - t0).count()
+              << dt_lbathread << ",avg="
+              << dt_lbathread_avg / num_lbathread_avg
               << endl;
         }
         else if(Stop() && !mbBadImu)
