@@ -45,7 +45,7 @@ int main(int argc, char **argv)
     if (bFileName)
         file_name = string(argv[argc-1]);
 
-    if(argc < 7) 
+    if(argc < 7)
     {
         cerr << endl << "Usage: ./stereo_inertial_tum_vi path_to_vocabulary path_to_settings path_to_image_folder_1 path_to_image_folder_2 path_to_times_file path_to_imu_data (trajectory_file_name)" << endl;
         return 1;
@@ -210,17 +210,16 @@ int main(int argc, char **argv)
     std::stringstream ss;
     ss << now;
 
-    if (bFileName)
-    {
-        const string kf_file =  "kf_" + string(argv[argc-1]) + ".txt";
-        const string f_file =  "f_" + string(argv[argc-1]) + ".txt";
-        SLAM.SaveTrajectoryEuRoC(f_file);
-        SLAM.SaveKeyFrameTrajectoryEuRoC(kf_file);
+    double time_scale = 1.0;
+    if (bFileName) {
+      const string kf_file = "kf_" + string(argv[argc - 1]) + ".txt";
+      const string f_file = "f_" + string(argv[argc - 1]) + ".txt";
+      SLAM.SaveTrajectoryEuRoC(f_file, time_scale);
+      SLAM.SaveKeyFrameTrajectoryEuRoC(kf_file, time_scale);
     }
-    else
-    {
-        SLAM.SaveTrajectoryEuRoC("CameraTrajectory.txt");
-        SLAM.SaveKeyFrameTrajectoryEuRoC("KeyFrameTrajectory.txt");
+    else {
+      SLAM.SaveTrajectoryEuRoC("CameraTrajectory.txt", time_scale);
+      SLAM.SaveKeyFrameTrajectoryEuRoC("KeyFrameTrajectory.txt", time_scale);
     }
 
     sort(vTimesTrack.begin(),vTimesTrack.end());
