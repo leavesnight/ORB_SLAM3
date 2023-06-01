@@ -51,7 +51,7 @@ int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint*> &vpMapPoint
       MapPoint *pMP = vpMapPoints[iMP];
       if (!pMP->mbTrackInView && !pMP->mbTrackInViewR) continue;
 
-      if (0 && bFarPoints && pMP->mTrackDepth > thFarPoints) continue;
+      if (bFarPoints && pMP->mTrackDepth > thFarPoints) continue;
 
       if (pMP->isBad()) continue;
 
