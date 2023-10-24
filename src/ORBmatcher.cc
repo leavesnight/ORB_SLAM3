@@ -190,7 +190,7 @@ int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint*> &vpMapPoint
       }
     }
 
-    cout << "left,right="<<left<<","<<right<<endl;
+    //cout << "left,right="<<left<<","<<right<<endl;
 
     return nmatches;
 }
@@ -2399,7 +2399,7 @@ int ORBmatcher::SearchBySim3(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint*> &
                 }
             }
         }
-        cout << "check num_mp="<<num_mp<<endl;
+//        cout << "check num_mp="<<num_mp<<endl;
 
         //Apply rotation consistency
         if(mbCheckOrientation)

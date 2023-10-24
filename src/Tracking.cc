@@ -1528,8 +1528,8 @@ bool Tracking::PredictStateIMU()
         mCurrentFrame.mImuBias = mpLastKeyFrame->GetImuBias();
         mCurrentFrame.mPredBias = mCurrentFrame.mImuBias;
 
-      cout << "check bgba="<<mCurrentFrame.mImuBias.bwx<<" "<<mCurrentFrame.mImuBias.bwy<<" "<<mCurrentFrame.mImuBias.bwz<<
-           ","<<mCurrentFrame.mImuBias.bax<<" "<<mCurrentFrame.mImuBias.bay<<" "<<mCurrentFrame.mImuBias.baz<<endl;
+//      cout << "check bgba="<<mCurrentFrame.mImuBias.bwx<<" "<<mCurrentFrame.mImuBias.bwy<<" "<<mCurrentFrame.mImuBias.bwz<<
+//           ","<<mCurrentFrame.mImuBias.bax<<" "<<mCurrentFrame.mImuBias.bay<<" "<<mCurrentFrame.mImuBias.baz<<endl;
         return true;
     }
     else if(!mbMapUpdated)
@@ -1551,8 +1551,8 @@ bool Tracking::PredictStateIMU()
         mCurrentFrame.mImuBias =mLastFrame.mImuBias;
         mCurrentFrame.mPredBias = mCurrentFrame.mImuBias;
 
-      cout << "check bgba="<<mCurrentFrame.mImuBias.bwx<<" "<<mCurrentFrame.mImuBias.bwy<<" "<<mCurrentFrame.mImuBias.bwz<<
-           ","<<mCurrentFrame.mImuBias.bax<<" "<<mCurrentFrame.mImuBias.bay<<" "<<mCurrentFrame.mImuBias.baz<<endl;
+//      cout << "check bgba="<<mCurrentFrame.mImuBias.bwx<<" "<<mCurrentFrame.mImuBias.bwy<<" "<<mCurrentFrame.mImuBias.bwz<<
+//           ","<<mCurrentFrame.mImuBias.bax<<" "<<mCurrentFrame.mImuBias.bay<<" "<<mCurrentFrame.mImuBias.baz<<endl;
         return true;
     }
     else
@@ -1761,7 +1761,7 @@ void Tracking::Track()
         mbMapUpdated = true;
     }
 
-    cout << "curf tm="<<mCurrentFrame.mTimeStamp<<endl;
+//    cout << "curf tm="<<mCurrentFrame.mTimeStamp<<endl;
     if(mState==NOT_INITIALIZED)
     {
         if(mSensor==System::STEREO || mSensor==System::RGBD || mSensor==System::IMU_STEREO)
@@ -2737,7 +2737,7 @@ bool Tracking::TrackWithMotionModel()
         th=15;
 
     int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR || mSensor==System::IMU_MONOCULAR);
-  cout << "math num2="<<nmatches<<endl;
+//  cout << "math num2="<<nmatches<<endl;
 
     // If few matches, uses a wider window search
     if(nmatches<20)
@@ -2761,7 +2761,7 @@ bool Tracking::TrackWithMotionModel()
 
     // Optimize frame pose with all matches
     int num_inliers = Optimizer::PoseOptimization(&mCurrentFrame);
-  cout << "inliers2="<< num_inliers<<endl;
+//  cout << "inliers2="<< num_inliers<<endl;
 
     // Discard outliers
     int nmatchesMap = 0;
@@ -2901,7 +2901,7 @@ bool Tracking::TrackLocalMap()
     // Decide if the tracking was succesful
     // More restrictive if there was a relocalization recently
     mpLocalMapper->mnMatchesInliers=mnMatchesInliers;
-    cout << "inliers_map="<<mnMatchesInliers<<endl;
+    //cout << "inliers_map="<<mnMatchesInliers<<endl;
     if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mnMatchesInliers<50)
         return false;
 
@@ -3056,8 +3056,8 @@ bool Tracking::NeedNewKeyFrame()
     else
         c4=false;
 
-    cout << "check inliers="<<mnMatchesInliers<<"<"<<nRefMatches<<","<<(int)bNeedToInsertClose<<endl;
-    cout << "check each cond="<<(int)c4<<" "<<(int)c3<<" "<<(int)c2<<" c1:"<<int(c1a)<<","<<int(c1b)<<","<<int(c1c)<<endl;
+//    cout << "check inliers="<<mnMatchesInliers<<"<"<<nRefMatches<<","<<(int)bNeedToInsertClose<<endl;
+//    cout << "check each cond="<<(int)c4<<" "<<(int)c3<<" "<<(int)c2<<" c1:"<<int(c1a)<<","<<int(c1b)<<","<<int(c1c)<<endl;
     if(((c1a||c1b||c1c) && c2)||c3 ||c4)
     {
         // If the mapping accepts keyframes, insert keyframe.
@@ -3262,7 +3262,7 @@ void Tracking::SearchLocalPoints()
             mCurrentFrame.mmProjectPoints[pMP->mnId] = cv::Point2f(pMP->mTrackProjX, pMP->mTrackProjY);
         }
     }
-  cout << "extra init=" << nToMatch << endl;
+  //cout << "extra init=" << nToMatch << endl;
 
   if(nToMatch>0) {
     ORBmatcher matcher(0.8);
@@ -3289,7 +3289,7 @@ void Tracking::SearchLocalPoints()
     int matches = matcher.SearchByProjection(mCurrentFrame, mvpLocalMapPoints, th, mpLocalMapper->mbFarPoints,
                                              mpLocalMapper->mThFarPoints);
 
-    cout << "befopt2 extra=" << matches << endl;
+    //cout << "befopt2 extra=" << matches << endl;
   }
 }
 
