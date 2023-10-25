@@ -1408,71 +1408,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
             return;
 
     optimizer.initializeOptimization();
-
-    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    optimizer.optimize(5);
-    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-
-    bool bDoMore= true;
-
-    if(pbStopFlag)
-        if(*pbStopFlag)
-            bDoMore = false;
-
-    if(bDoMore)
-    {
-
-        // Check inlier observations
-        int nMonoBadObs = 0;
-        for(size_t i=0, iend=vpEdgesMono.size(); i<iend;i++)
-        {
-            ORB_SLAM3::EdgeSE3ProjectXYZ* e = vpEdgesMono[i];
-            MapPoint* pMP = vpMapPointEdgeMono[i];
-
-            if(pMP->isBad())
-                continue;
-
-            if(e->chi2()>5.991 || !e->isDepthPositive())
-            {
-                nMonoBadObs++;
-            }
-        }
-
-        int nBodyBadObs = 0;
-        for(size_t i=0, iend=vpEdgesBody.size(); i<iend;i++)
-        {
-            ORB_SLAM3::EdgeSE3ProjectXYZToBody* e = vpEdgesBody[i];
-            MapPoint* pMP = vpMapPointEdgeBody[i];
-
-            if(pMP->isBad())
-                continue;
-
-            if(e->chi2()>5.991 || !e->isDepthPositive())
-            {
-                nBodyBadObs++;
-            }
-        }
-
-        int nStereoBadObs = 0;
-        for(size_t i=0, iend=vpEdgesStereo.size(); i<iend;i++)
-        {
-            g2o::EdgeStereoSE3ProjectXYZ* e = vpEdgesStereo[i];
-            MapPoint* pMP = vpMapPointEdgeStereo[i];
-
-            if(pMP->isBad())
-                continue;
-
-            if(e->chi2()>7.815 || !e->isDepthPositive())
-            {
-                nStereoBadObs++;
-            }
-        }
-
-        // Optimize again
-        optimizer.initializeOptimization(0);
-        optimizer.optimize(10);
-
-    }
+    optimizer.optimize(10);
 
     vector<pair<KeyFrame*,MapPoint*> > vToErase;
     vToErase.reserve(vpEdgesMono.size()+vpEdgesBody.size()+vpEdgesStereo.size());
@@ -3539,7 +3475,9 @@ void Optimizer::InertialOptimization(Map *pMap, Eigen::Matrix3d &Rwg, double &sc
             ei->setVertex(5,dynamic_cast<g2o::OptimizableGraph::Vertex*>(VV2));
             ei->setVertex(6,dynamic_cast<g2o::OptimizableGraph::Vertex*>(VGDir));
             ei->setVertex(7,dynamic_cast<g2o::OptimizableGraph::Vertex*>(VS));
-
+            g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
+            ei->setRobustKernel(rk);
+            rk->setDelta(1.f);
             optimizer.addEdge(ei);
         }
     }
