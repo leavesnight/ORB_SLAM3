@@ -869,6 +869,6 @@ Eigen::Matrix3d Skew(const Eigen::Vector3d &w)
 Eigen::Matrix3d NormalizeRotation(const Eigen::Matrix3d &R)
 {
     Eigen::JacobiSVD<Eigen::Matrix3d> svd(R,Eigen::ComputeFullU | Eigen::ComputeFullV);
-    return svd.matrixU()*svd.matrixV();
+    return svd.matrixU()*svd.matrixV().transpose();
 }
 }
