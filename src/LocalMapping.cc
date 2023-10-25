@@ -198,7 +198,7 @@ void LocalMapping::Run()
                 vdKFCullingSync_ms.push_back(timeKFCulling_ms);
 #endif
 
-                if ((mTinit<100.0f) && mbInertial)
+                if ((mTinit<50.0f) && mbInertial)
                 {
                     if(mpCurrentKeyFrame->GetMap()->isImuInitialized() && mpTracker->mState==Tracking::OK)
                     {
@@ -229,7 +229,7 @@ void LocalMapping::Run()
                         }
 
                         // scale refinement
-                        if (((mpAtlas->KeyFramesInMap())<=100) &&
+                        if (((mpAtlas->KeyFramesInMap())<=200) &&
                                 ((mTinit>25.0f && mTinit<25.5f)||
                                 (mTinit>35.0f && mTinit<35.5f)||
                                 (mTinit>45.0f && mTinit<45.5f)||
@@ -469,9 +469,7 @@ void LocalMapping::CreateNewMapPoints()
 
         // Search matches that fullfil epipolar constraint
         vector<pair<size_t,size_t> > vMatchedIndices;
-        bool bCoarse = mbInertial &&
-                ((!mpCurrentKeyFrame->GetMap()->GetIniertialBA2() && mpCurrentKeyFrame->GetMap()->GetIniertialBA1())||
-                 mpTracker->mState==Tracking::RECENTLY_LOST);
+        bool bCoarse = mbInertial && mpTracker->mState==Tracking::RECENTLY_LOST && mpCurrentKeyFrame->GetMap()->GetIniertialBA2();
 
         matcher.SearchForTriangulation_(mpCurrentKeyFrame,pKF2,F12,vMatchedIndices,false,bCoarse);
 
@@ -603,7 +601,7 @@ void LocalMapping::CreateNewMapPoints()
             cv::Matx31f x3D;
             bool bEstimated = false;
             if(cosParallaxRays<cosParallaxStereo && cosParallaxRays>0 && (bStereo1 || bStereo2 ||
-               (cosParallaxRays<0.9998 && mbInertial) || (cosParallaxRays<0.9998 && !mbInertial)))
+               (cosParallaxRays<0.9996&& mbInertial) || (cosParallaxRays<0.9998 && !mbInertial)))
             {
                 // Linear Triangulation Method
                 cv::Matx14f A_r0 = xn1(0) * Tcw1.row(2) - Tcw1.row(0);
