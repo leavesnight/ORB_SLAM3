@@ -40,14 +40,15 @@ class Viewer;
 class FrameDrawer
 {
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     FrameDrawer(Atlas* pAtlas);
 
     // Update info from the last processed frame.
     void Update(Tracking *pTracker);
 
     // Draw last processed frame.
-    cv::Mat DrawFrame(bool bOldFeatures=true);
-    cv::Mat DrawRightFrame();
+    cv::Mat DrawFrame(float imageScale=1.f);
+    cv::Mat DrawRightFrame(float imageScale=1.f);
 
     bool both;
 
@@ -65,6 +66,8 @@ protected:
     vector<cv::KeyPoint> mvIniKeys;
     vector<int> mvIniMatches;
     int mState;
+    std::vector<float> mvCurrentDepth;
+    float mThDepth;
 
     Atlas* mpAtlas;
 

@@ -46,6 +46,7 @@ include_directories(
 ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
 ${PROJECT_SOURCE_DIR}/include/CameraModels
+${PROJECT_SOURCE_DIR}/Thirdparty/Sophus
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
 )
@@ -70,7 +71,6 @@ src/Optimizer.cc
 src/Frame.cc
 src/KeyFrameDatabase.cc
 src/Sim3Solver.cc
-src/Initializer.cc
 src/Viewer.cc
 src/ImuTypes.cc
 src/G2oTypes.cc
@@ -78,7 +78,10 @@ src/CameraModels/Pinhole.cpp
 src/CameraModels/KannalaBrandt8.cpp
 src/OptimizableTypes.cpp
 src/MLPnPsolver.cpp
+src/GeometricTools.cc
 src/TwoViewReconstruction.cc
+src/Config.cc
+src/Settings.cc
 include/System.h
 include/Tracking.h
 include/LocalMapping.h
@@ -96,7 +99,6 @@ include/Optimizer.h
 include/Frame.h
 include/KeyFrameDatabase.h
 include/Sim3Solver.h
-include/Initializer.h
 include/Viewer.h
 include/ImuTypes.h
 include/G2oTypes.h
@@ -105,9 +107,11 @@ include/CameraModels/Pinhole.h
 include/CameraModels/KannalaBrandt8.h
 include/OptimizableTypes.h
 include/MLPnPsolver.h
+include/GeometricTools.h
 include/TwoViewReconstruction.h
+include/SerializationUtils.h
 include/Config.h
-)
+include/Settings.h)
 
 add_subdirectory(Thirdparty/g2o)
 

@@ -48,8 +48,30 @@ class Pinhole;
 
 class Atlas
 {
+    friend class boost::serialization::access;
+
+    template<class Archive>
+    void serialize(Archive &ar, const unsigned int version)
+    {
+        ar.template register_type<Pinhole>();
+        ar.template register_type<KannalaBrandt8>();
+
+        // Save/load a set structure, the set structure is broken in libboost 1.58 for ubuntu 16.04, a vector is serializated
+        //ar & mspMaps;
+        ar & mvpBackupMaps;
+        ar & mvpCameras;
+        // Need to save/load the static Id from Frame, KeyFrame, MapPoint and Map
+        ar & Map::nNextId;
+        ar & Frame::nNextId;
+        ar & KeyFrame::nNextId;
+        ar & MapPoint::nNextId;
+        ar & GeometricCamera::nNextId;
+        ar & mnLastInitKFidMap;
+    }
 
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
     Atlas();
     Atlas(int initKFid); // When its initialization the first map is created
     ~Atlas();
@@ -67,7 +89,8 @@ public:
     //void EraseMapPoint(MapPoint* pMP);
     //void EraseKeyFrame(KeyFrame* pKF);
 
-    void AddCamera(GeometricCamera* pCam);
+    GeometricCamera* AddCamera(GeometricCamera* pCam);
+    std::vector<GeometricCamera*> GetAllCameras();
 
     /* All methods without Map pointer work on current map */
     void SetReferenceMapPoints(const std::vector<MapPoint*> &vpMPs);
@@ -100,6 +123,12 @@ public:
     void SetImuInitialized();
     bool isImuInitialized();
 
+    // Function for garantee the correction of serialization of this object
+    void PreSave();
+    void PostLoad();
+
+    map<long unsigned int, KeyFrame*> GetAtlasKeyframes();
+
     void SetKeyFrameDababase(KeyFrameDatabase* pKFDB);
     KeyFrameDatabase* GetKeyFrameDatabase();
 
@@ -114,13 +143,12 @@ protected:
 
     std::set<Map*> mspMaps;
     std::set<Map*> mspBadMaps;
+    // Its necessary change the container from set to vector because libboost 1.58 and Ubuntu 16.04 have an error with this cointainer
+    std::vector<Map*> mvpBackupMaps;
+
     Map* mpCurrentMap;
 
     std::vector<GeometricCamera*> mvpCameras;
-    std::vector<KannalaBrandt8*> mvpBackupCamKan;
-    std::vector<Pinhole*> mvpBackupCamPin;
-
-    std::mutex mMutexAtlas;
 
     unsigned long int mnLastInitKFidMap;
 
@@ -130,6 +158,9 @@ protected:
     // Class references for the map reconstruction from the save file
     KeyFrameDatabase* mpKeyFrameDB;
     ORBVocabulary* mpORBVocabulary;
+
+    // Mutex
+    std::mutex mMutexAtlas;
 
 
 }; // class Atlas
