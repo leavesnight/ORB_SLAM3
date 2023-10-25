@@ -2952,9 +2952,6 @@ bool Tracking::NeedNewKeyFrame()
         return false;
     }
 
-    // Return false if IMU is initialazing
-    if (mpLocalMapper->IsInitializing())
-        return false;
     const int nKFs = mpAtlas->KeyFramesInMap();
 
     // Do not insert keyframes if not enough frames have passed from last relocalisation
@@ -3048,7 +3045,7 @@ bool Tracking::NeedNewKeyFrame()
     {
         // If the mapping accepts keyframes, insert keyframe.
         // Otherwise send a signal to interrupt BA
-        if(bLocalMappingIdle)
+        if(bLocalMappingIdle || mpLocalMapper->IsInitializing())
         {
             return true;
         }
@@ -3072,7 +3069,7 @@ bool Tracking::NeedNewKeyFrame()
 
 void Tracking::CreateNewKeyFrame()
 {
-    if(mpLocalMapper->IsInitializing())
+    if(mpLocalMapper->IsInitializing() && !mpAtlas->isImuInitialized())
         return;
 
     if(!mpLocalMapper->SetNotStop(true))
@@ -3256,7 +3253,7 @@ void Tracking::SearchLocalPoints()
             if(mpAtlas->GetCurrentMap()->GetIniertialBA2())
                 th=2;
             else
-                th=3;
+                th=6;
         }
         else if(!mpAtlas->isImuInitialized() && (mSensor==System::IMU_MONOCULAR || mSensor==System::IMU_STEREO))
         {
