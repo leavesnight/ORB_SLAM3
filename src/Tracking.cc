@@ -326,10 +326,20 @@ void Tracking::PrintTimeStats()
     deviation = calcDeviation(vdLMTrack_ms, average);
     std::cout << "LM Track: " << average << "$\\pm$" << deviation << std::endl;
     f << "LM Track: " << average << "$\\pm$" << deviation << std::endl;
+  {
+    average = calcAverage(vdLMUpdate_ms);
+    deviation = calcDeviation(vdLMUpdate_ms, average);
+    std::cout << "LM Update: " << average << "$\\pm$" << deviation << std::endl;
+    f << "LM Update: " << average << "$\\pm$" << deviation << std::endl;
+    average = calcAverage(vdLMSearch_ms);
+    deviation = calcDeviation(vdLMSearch_ms, average);
+    std::cout << "LM Search: " << average << "$\\pm$" << deviation << std::endl;
+    f << "LM Search: " << average << "$\\pm$" << deviation << std::endl;
     average = calcAverage(vdLMBA_ms);
     deviation = calcDeviation(vdLMBA_ms, average);
     std::cout << "LM BA: " << average << "$\\pm$" << deviation << std::endl;
     f << "LM BA: " << average << "$\\pm$" << deviation << std::endl;
+  }
 
     average = calcAverage(vdNewKF_ms);
     deviation = calcDeviation(vdNewKF_ms, average);
@@ -2957,8 +2967,26 @@ bool Tracking::TrackLocalMap()
     // We retrieve the local map and try to find matches to points in the local map.
     mTrackedFr++;
 
+#ifdef REGISTER_TIMES
+  std::chrono::steady_clock::time_point time_StartLMUpdate = std::chrono::steady_clock::now();
+#endif
     UpdateLocalMap();
+#ifdef REGISTER_TIMES
+  std::chrono::steady_clock::time_point time_EndLMUpdate = std::chrono::steady_clock::now();
+
+  double timeLMUpdate = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndLMUpdate - time_StartLMUpdate).count();
+  vdLMUpdate_ms.push_back(timeLMUpdate);
+#endif
+#ifdef REGISTER_TIMES
+  std::chrono::steady_clock::time_point time_StartLMSearch = std::chrono::steady_clock::now();
+#endif
     SearchLocalPoints();
+#ifdef REGISTER_TIMES
+  std::chrono::steady_clock::time_point time_EndLMSearch = std::chrono::steady_clock::now();
+
+  double timeLMSearch = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndLMSearch - time_StartLMSearch).count();
+  vdLMSearch_ms.push_back(timeLMSearch);
+#endif
 
     // TOO check outliers before PO
     int aux1 = 0, aux2=0;
@@ -2999,8 +3027,8 @@ bool Tracking::TrackLocalMap()
 #ifdef REGISTER_TIMES
           std::chrono::steady_clock::time_point time_EndLMBA = std::chrono::steady_clock::now();
 
-          double timeLMTrack = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndLMBA - time_StartLMBA).count();
-          vdLMBA_ms.push_back(timeLMTrack);
+          double timeLMBA = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndLMBA - time_StartLMBA).count();
+          vdLMBA_ms.push_back(timeLMBA);
 #endif
         }
     }

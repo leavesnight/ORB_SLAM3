@@ -189,6 +189,8 @@ public:
     vector<double> vdPosePred_ms;
     vector<double> vdLMTrack_ms;
     vector<double> vdLMBA_ms;
+    vector<double> vdLMUpdate_ms;
+    vector<double> vdLMSearch_ms;
     vector<double> vdNewKF_ms;
     vector<double> vdTrackTotal_ms;
 #endif
