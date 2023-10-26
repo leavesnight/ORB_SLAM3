@@ -913,7 +913,7 @@ void Frame::ComputeStereoMatches()
             vector<float> vDists;
             vDists.resize(2*L+1);
 
-            const float iniu = scaleduR0+L-w;
+            const float iniu = scaleduR0-L-w;
             const float endu = scaleduR0+L+w+1;
             if(iniu<0 || endu >= mpORBextractorRight->mvImagePyramid[kpL.octave].cols)
                 continue;
@@ -964,6 +964,7 @@ void Frame::ComputeStereoMatches()
         }
     }
 
+  if (vDistIdx.empty()) return;
     sort(vDistIdx.begin(),vDistIdx.end());
     const float median = vDistIdx[vDistIdx.size()/2].first;
     const float thDist = 1.5f*1.4f*median;
