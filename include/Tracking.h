@@ -188,6 +188,7 @@ public:
     vector<double> vdIMUInteg_ms;
     vector<double> vdPosePred_ms;
     vector<double> vdLMTrack_ms;
+    vector<double> vdLMBA_ms;
     vector<double> vdNewKF_ms;
     vector<double> vdTrackTotal_ms;
 #endif

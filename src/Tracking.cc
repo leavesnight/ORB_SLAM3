@@ -326,6 +326,10 @@ void Tracking::PrintTimeStats()
     deviation = calcDeviation(vdLMTrack_ms, average);
     std::cout << "LM Track: " << average << "$\\pm$" << deviation << std::endl;
     f << "LM Track: " << average << "$\\pm$" << deviation << std::endl;
+    average = calcAverage(vdLMBA_ms);
+    deviation = calcDeviation(vdLMBA_ms, average);
+    std::cout << "LM BA: " << average << "$\\pm$" << deviation << std::endl;
+    f << "LM BA: " << average << "$\\pm$" << deviation << std::endl;
 
     average = calcAverage(vdNewKF_ms);
     deviation = calcDeviation(vdNewKF_ms, average);
@@ -2978,6 +2982,9 @@ bool Tracking::TrackLocalMap()
         }
         else
         {
+#ifdef REGISTER_TIMES
+          std::chrono::steady_clock::time_point time_StartLMBA = std::chrono::steady_clock::now();
+#endif
             // if(!mbMapUpdated && mState == OK) //  && (mnMatchesInliers>30))
             if(!mbMapUpdated) //  && (mnMatchesInliers>30))
             {
@@ -2989,6 +2996,12 @@ bool Tracking::TrackLocalMap()
                 Verbose::PrintMess("TLM: PoseInertialOptimizationLastKeyFrame ", Verbose::VERBOSITY_DEBUG);
                 inliers = Optimizer::PoseInertialOptimizationLastKeyFrame(&mCurrentFrame); // , !mpLastKeyFrame->GetMap()->GetIniertialBA1());
             }
+#ifdef REGISTER_TIMES
+          std::chrono::steady_clock::time_point time_EndLMBA = std::chrono::steady_clock::now();
+
+          double timeLMTrack = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndLMBA - time_StartLMBA).count();
+          vdLMBA_ms.push_back(timeLMTrack);
+#endif
         }
     }
 
