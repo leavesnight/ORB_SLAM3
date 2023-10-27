@@ -736,7 +736,7 @@ void LocalMapping::SearchInNeighbors()
     // Extend to some second neighbors if abort is not requested
     for(int i=0, imax=vpTargetKFs.size(); i<imax; i++)
     {
-        const vector<KeyFrame*> vpSecondNeighKFs = vpTargetKFs[i]->GetBestCovisibilityKeyFrames(20);
+        const vector<KeyFrame*> vpSecondNeighKFs = vpTargetKFs[i]->GetBestCovisibilityKeyFrames(5);//20);
         for(vector<KeyFrame*>::const_iterator vit2=vpSecondNeighKFs.begin(), vend2=vpSecondNeighKFs.end(); vit2!=vend2; vit2++)
         {
             KeyFrame* pKFi2 = *vit2;
@@ -1007,11 +1007,11 @@ void LocalMapping::KeyFrameCulling()
                             if(scaleLeveli<=scaleLevel+1)
                             {
                                 nObs++;
-                                if(nObs>thObs)
+                                if(nObs>=thObs)
                                     break;
                             }
                         }
-                        if(nObs>thObs)
+                        if(nObs>=thObs)
                         {
                             nRedundantObservations++;
                         }
