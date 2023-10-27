@@ -488,6 +488,7 @@ void MapPoint::UpdateNormalAndDepth()
 
     Eigen::Vector3f PC = Pos - pRefKF->GetCameraCenter();
     const float dist = PC.norm();
+    if (INFINITY == mTrackDepth) mTrackDepth = dist;
 
     tuple<int ,int> indexes = observations[pRefKF];
     int leftIndex = get<0>(indexes), rightIndex = get<1>(indexes);

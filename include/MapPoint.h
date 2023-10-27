@@ -170,7 +170,7 @@ public:
     // Variables used by the tracking
     float mTrackProjX;
     float mTrackProjY;
-    float mTrackDepth;
+    float mTrackDepth = INFINITY;
     float mTrackDepthR;
     float mTrackProjXR;
     float mTrackProjYR;

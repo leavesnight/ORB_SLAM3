@@ -511,6 +511,8 @@ Eigen::Vector3f Frame::GetRelativePoseTlr_translation() {
 
 bool Frame::isInFrustum(MapPoint *pMP, float viewingCosLimit)
 {
+    // for lba will also judge it, so cannot reset it here
+    //pMP->mTrackDepth = INFINITY;
     if(Nleft == -1){
         pMP->mbTrackInView = false;
         pMP->mTrackProjX = -1;
