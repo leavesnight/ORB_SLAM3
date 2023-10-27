@@ -1793,7 +1793,12 @@ namespace ORB_SLAM3
                     }
                     if(CurrentFrame.Nleft != -1){
                         Eigen::Vector3f x3Dr = CurrentFrame.GetRelativePoseTrl() * x3Dc;
-                        Eigen::Vector2f uv = CurrentFrame.mpCamera->project(x3Dr);
+                        Eigen::Vector2f uv = CurrentFrame.mpCamera2->project(x3Dr);
+
+                        if(uv[0] < CurrentFrame.mnMinX || uv[0] > CurrentFrame.mnMaxX)
+                            continue;
+                        if(uv[1] < CurrentFrame.mnMinY || uv[1] > CurrentFrame.mnMaxY)
+                            continue;
 
                         int nLastOctave = (LastFrame.Nleft == -1 || i < LastFrame.Nleft) ? LastFrame.mvKeys[i].octave
                                              : LastFrame.mvKeysRight[i - LastFrame.Nleft].octave;
