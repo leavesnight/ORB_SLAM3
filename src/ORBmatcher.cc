@@ -353,10 +353,12 @@ namespace ORB_SLAM3
                             }
                             nmatches++;
                         }
+                    }
 
                         if(bestDist1R<=TH_LOW)
                         {
-                            if(static_cast<float>(bestDist1R)<mfNNratio*static_cast<float>(bestDist2R) || true)
+                            //  Notice the same current cam matches the same map point in 2 different features problem
+                            if(static_cast<float>(bestDist1R)<mfNNratio*static_cast<float>(bestDist2R))
                             {
                                 vpMapPointMatches[bestIdxFR]=pMP;
 
@@ -384,8 +386,6 @@ namespace ORB_SLAM3
                                 nmatches++;
                             }
                         }
-                    }
-
                 }
 
                 KFit++;
