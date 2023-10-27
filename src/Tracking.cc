@@ -2892,7 +2892,7 @@ bool Tracking::TrackWithMotionModel()
     // Project points seen in previous frame
     int th;
 
-    if(mSensor==System::STEREO)
+    if(mSensor == System::STEREO || mSensor == System::IMU_STEREO)
         th=7;
     else
         th=15;
@@ -3183,7 +3183,7 @@ bool Tracking::NeedNewKeyFrame()
     if(mSensor==System::MONOCULAR)
         thRefRatio = 0.9f;
 
-    if(mpCamera2) thRefRatio = 0.75f;
+    //if(mpCamera2) thRefRatio = 0.75f;
 
     if(mSensor==System::IMU_MONOCULAR)
     {
@@ -3437,11 +3437,11 @@ void Tracking::SearchLocalPoints()
             if(mpAtlas->GetCurrentMap()->GetIniertialBA2())
                 th=2;
             else
-                th=6;
+                th=2;//6;
         }
-        else if(!mpAtlas->isImuInitialized() && (mSensor==System::IMU_MONOCULAR || mSensor==System::IMU_STEREO || mSensor == System::IMU_RGBD))
+        else if(0 && !mpAtlas->isImuInitialized() && (mSensor==System::IMU_MONOCULAR || mSensor==System::IMU_STEREO || mSensor == System::IMU_RGBD))
         {
-            th=10;
+            th=2;//10;
         }
 
         // If the camera has been relocalised recently, perform a coarser search
