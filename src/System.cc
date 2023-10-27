@@ -576,6 +576,18 @@ void System::SaveTrajectoryTUM(const string &filename)
     }
 
     vector<KeyFrame*> vpKFs = mpAtlas->GetAllKeyFrames();
+    if (0) {
+      vector<Map *> vpMaps = mpAtlas->GetAllMaps();
+      Map *pBiggerMap;
+      int numMaxKFs = 0;
+      for (Map *pMap : vpMaps) {
+        if (pMap->GetAllKeyFrames().size() > numMaxKFs) {
+          numMaxKFs = pMap->GetAllKeyFrames().size();
+          pBiggerMap = pMap;
+        }
+      }
+      vpKFs = pBiggerMap->GetAllKeyFrames();
+    }
     sort(vpKFs.begin(),vpKFs.end(),KeyFrame::lId);
 
     // Transform all keyframes so that the first keyframe is at the origin.
@@ -631,6 +643,18 @@ void System::SaveKeyFrameTrajectoryTUM(const string &filename)
     cout << endl << "Saving keyframe trajectory to " << filename << " ..." << endl;
 
     vector<KeyFrame*> vpKFs = mpAtlas->GetAllKeyFrames();
+    if (0) {
+      vector<Map *> vpMaps = mpAtlas->GetAllMaps();
+      Map *pBiggerMap;
+      int numMaxKFs = 0;
+      for (Map *pMap : vpMaps) {
+        if (pMap->GetAllKeyFrames().size() > numMaxKFs) {
+          numMaxKFs = pMap->GetAllKeyFrames().size();
+          pBiggerMap = pMap;
+        }
+      }
+      vpKFs = pBiggerMap->GetAllKeyFrames();
+    }
     sort(vpKFs.begin(),vpKFs.end(),KeyFrame::lId);
 
     // Transform all keyframes so that the first keyframe is at the origin.
