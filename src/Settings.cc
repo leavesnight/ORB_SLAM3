@@ -499,6 +499,13 @@ namespace ORB_SLAM3 {
         cv::Mat R_r1_u1, R_r2_u2;
         cv::Mat P1, P2, Q;
 
+        cout << "K1=" << K1 << endl;
+        cout << "K2=" << K2 << endl;
+        cout << "D1=" << camera1DistortionCoef().t() << endl;
+        cout << "D2=" << camera2DistortionCoef().t() << endl;
+        cout << "newsz=" << newImSize_ << endl;
+        cout << "R12=" << R12 << endl;
+        cout << "t12=" << t12.t() << endl;
         cv::stereoRectify(K1,camera1DistortionCoef(),K2,camera2DistortionCoef(),newImSize_,
                           R12, t12,
                           R_r1_u1,R_r2_u2,P1,P2,Q,
@@ -524,6 +531,10 @@ namespace ORB_SLAM3 {
             Sophus::SE3f T_r1_u1(eigenR_r1_u1,Eigen::Vector3f::Zero());
             Tbc_ = Tbc_ * T_r1_u1.inverse();
         }
+        cout << "Tbc=" << Tbc_.matrix3x4() << endl;
+        cout << "R_r1_u1=" << R_r1_u1 << endl;
+        cout << "R_r2_u2=" << R_r2_u2 << endl;
+        cout << "P1=" << P1 <<endl << "P2=" << P2 << endl;
     }
 
     ostream &operator<<(std::ostream& output, const Settings& settings){

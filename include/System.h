@@ -152,8 +152,8 @@ public:
     // See format details at: http://vision.in.tum.de/data/datasets/rgbd-dataset
     void SaveKeyFrameTrajectoryTUM(const string &filename);
 
-    void SaveTrajectoryEuRoC(const string &filename);
-    void SaveKeyFrameTrajectoryEuRoC(const string &filename);
+    void SaveTrajectoryEuRoC(const string &filename, float timescale = 1.f);
+    void SaveKeyFrameTrajectoryEuRoC(const string &filename, float timescale = 1.f);
 
     void SaveTrajectoryEuRoC(const string &filename, Map* pMap);
     void SaveKeyFrameTrajectoryEuRoC(const string &filename, Map* pMap);

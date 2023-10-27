@@ -57,6 +57,8 @@ Examples/ROS/ORB_SLAM3/build/
 
 KeyFrameTrajectory.txt
 CameraTrajectory.txt
+KeyFrameTrajectory2.txt
+CameraTrajectory2.txt
 kf_*.txt
 f_*.txt
 Thirdparty/DBoW2/build/

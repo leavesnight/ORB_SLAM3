@@ -380,6 +380,7 @@ bool LoopClosing::NewDetectCommonRegions()
         g2o::Sim3 gScw = gScl * mg2oLoopSlw;
         int numProjMatches = 0;
         vector<MapPoint*> vpMatchedMPs;
+        // SBP>=30->g2oSim3>=50->SBP>=100
         bool bCommonRegion = DetectAndReffineSim3FromLastKF(mpCurrentKF, mpLoopMatchedKF, gScw, numProjMatches, mvpLoopMPs, vpMatchedMPs);
         if(bCommonRegion)
         {
@@ -392,7 +393,7 @@ bool LoopClosing::NewDetectCommonRegions()
             mg2oLoopSlw = gScw;
             mvpLoopMatchedMPs = vpMatchedMPs;
 
-
+            // like consistent group tech. in ORB2
             mbLoopDetected = mnLoopNumCoincidences >= 3;
             mnLoopNumNotFound = 0;
 
@@ -624,7 +625,7 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
             vpCovKFi[0] = pKFi;
         }
 
-
+        // like minScore used in ORB2
         bool bAbortByNearKF = false;
         for(int j=0; j<vpCovKFi.size(); ++j)
         {
@@ -835,6 +836,7 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
                                     Sophus::SE3f Tw_cj = pKFj->GetPoseInverse();
                                     Sophus::SE3f Tc_cj = Tc_w * Tw_cj;
                                     Eigen::Vector3f vector_dist = Tc_cj.translation();
+                                    // like consistent group tech. in ORB2 but this is at space
                                     nNumKFs++;
                                 }
                                 j++;
