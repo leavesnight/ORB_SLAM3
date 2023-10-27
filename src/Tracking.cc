@@ -2777,7 +2777,7 @@ bool Tracking::TrackReferenceKeyFrame()
                 else{
                     pMP->mbTrackInViewR = false;
                 }
-                pMP->mbTrackInView = false;
+                // pMP->mbTrackInView = false;
                 pMP->mnLastFrameSeen = mCurrentFrame.mnId;
                 nmatches--;
             }

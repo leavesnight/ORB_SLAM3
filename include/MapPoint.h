@@ -126,7 +126,7 @@ public:
     void EraseObservation(KeyFrame* pKF);
 
     std::tuple<int,int> GetIndexInKeyFrame(KeyFrame* pKF);
-    bool IsInKeyFrame(KeyFrame* pKF);
+    bool IsInKeyFrame(KeyFrame* pKF, size_t idx = -1, size_t cami = -1);
 
     void SetBadFlag();
     bool isBad();
