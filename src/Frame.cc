@@ -1147,14 +1147,22 @@ void Frame::ComputeStereoFishEyeMatches() {
     int descMatches = 0;
 
     //Check matches using Lowe's ratio
+    set<pair<int,int>> check;
     for(vector<vector<cv::DMatch>>::iterator it = matches.begin(); it != matches.end(); ++it){
         if((*it).size() >= 2 && (*it)[0].distance < (*it)[1].distance * 0.7){
             //For every good match, check parallax and reprojection error to discard spurious matches
             Eigen::Vector3f p3D;
             descMatches++;
+            // ensure symmetry
+            if (check.count(make_pair(1,(*it)[0].trainIdx + monoRight))) continue;
+            if (check.count(make_pair(0,(*it)[0].queryIdx + monoLeft))) continue;
             float sigma1 = mvLevelSigma2[mvKeys[(*it)[0].queryIdx + monoLeft].octave], sigma2 = mvLevelSigma2[mvKeysRight[(*it)[0].trainIdx + monoRight].octave];
-            float depth = static_cast<KannalaBrandt8*>(mpCamera)->TriangulateMatches(mpCamera2,mvKeys[(*it)[0].queryIdx + monoLeft],mvKeysRight[(*it)[0].trainIdx + monoRight],mRlr,mtlr,sigma1,sigma2,p3D);
-            if(depth > 0.0001f){
+            float depth2;
+            float depth = static_cast<KannalaBrandt8*>(mpCamera)->TriangulateMatches(mpCamera2,mvKeys[(*it)[0].queryIdx + monoLeft],mvKeysRight[(*it)[0].trainIdx + monoRight],mRlr,mtlr,sigma1,sigma2,p3D, &depth2);
+            if(depth > 0.0001f && depth2 > 0.0001f){
+                // ensure bijection
+                check.emplace(make_pair(1,(*it)[0].trainIdx + monoRight));
+                check.emplace(make_pair(0,(*it)[0].queryIdx + monoLeft));
                 mvLeftToRightMatch[(*it)[0].queryIdx + monoLeft] = (*it)[0].trainIdx + monoRight;
                 mvRightToLeftMatch[(*it)[0].trainIdx + monoRight] = (*it)[0].queryIdx + monoLeft;
                 mvStereo3Dpoints[(*it)[0].queryIdx + monoLeft] = p3D;

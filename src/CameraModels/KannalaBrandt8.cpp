@@ -303,7 +303,8 @@ namespace ORB_SLAM3 {
         return true;
     }
 
-    float KannalaBrandt8::TriangulateMatches(GeometricCamera *pCamera2, const cv::KeyPoint &kp1, const cv::KeyPoint &kp2, const Eigen::Matrix3f& R12, const Eigen::Vector3f& t12, const float sigmaLevel, const float unc, Eigen::Vector3f& p3D) {
+    float KannalaBrandt8::TriangulateMatches(GeometricCamera *pCamera2, const cv::KeyPoint &kp1, const cv::KeyPoint &kp2, const Eigen::Matrix3f& R12, const Eigen::Vector3f& t12, const float sigmaLevel, const float unc, Eigen::Vector3f& p3D,
+                                             float *pz2) {
 
         Eigen::Vector3f r1 = this->unprojectEig(kp1.pt);
         Eigen::Vector3f r2 = pCamera2->unprojectEig(kp2.pt);
@@ -371,6 +372,7 @@ namespace ORB_SLAM3 {
 
         p3D = x3D;
 
+        if (pz2) *pz2 = z2;
         return z1;
     }
 
