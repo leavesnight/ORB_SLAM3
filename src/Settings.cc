@@ -315,10 +315,10 @@ namespace ORB_SLAM3 {
             float cx = readParameter<float>(fSettings,"Camera2.cx",found);
             float cy = readParameter<float>(fSettings,"Camera2.cy",found);
 
-            float k0 = readParameter<float>(fSettings,"Camera1.k1",found);
-            float k1 = readParameter<float>(fSettings,"Camera1.k2",found);
-            float k2 = readParameter<float>(fSettings,"Camera1.k3",found);
-            float k3 = readParameter<float>(fSettings,"Camera1.k4",found);
+            float k0 = readParameter<float>(fSettings,"Camera2.k1",found);
+            float k1 = readParameter<float>(fSettings,"Camera2.k2",found);
+            float k2 = readParameter<float>(fSettings,"Camera2.k3",found);
+            float k3 = readParameter<float>(fSettings,"Camera2.k4",found);
 
 
             vCalibration = {fx,fy,cx,cy,k0,k1,k2,k3};
