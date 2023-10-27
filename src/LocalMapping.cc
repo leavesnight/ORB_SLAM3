@@ -770,7 +770,7 @@ void LocalMapping::SearchInNeighbors()
         KeyFrame* pKFi = *vit;
 
         matcher.Fuse(pKFi,vpMapPointMatches);
-        if(pKFi->NLeft != -1) matcher.Fuse(pKFi,vpMapPointMatches,true);
+        if(pKFi->NLeft != -1) matcher.Fuse(pKFi,vpMapPointMatches, 3.0, true);
     }
 
 
@@ -800,7 +800,7 @@ void LocalMapping::SearchInNeighbors()
     }
 
     matcher.Fuse(mpCurrentKeyFrame,vpFuseCandidates);
-    if(mpCurrentKeyFrame->NLeft != -1) matcher.Fuse(mpCurrentKeyFrame,vpFuseCandidates,true);
+    if(mpCurrentKeyFrame->NLeft != -1) matcher.Fuse(mpCurrentKeyFrame,vpFuseCandidates, 3.0, true);
 
 
     // Update points
