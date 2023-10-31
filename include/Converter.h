@@ -26,8 +26,12 @@
 #include"Thirdparty/g2o/g2o/types/types_six_dof_expmap.h"
 #include"Thirdparty/g2o/g2o/types/types_seven_dof_expmap.h"
 
+#ifdef USE_SOPHUS_NEWEST
 #include "Thirdparty/Sophus/sophus/geometry.hpp"
 #include "Thirdparty/Sophus/sophus/sim3.hpp"
+#else
+#include "sophus/se3_extra.h"
+#endif
 
 namespace ORB_SLAM3
 {
@@ -66,6 +70,13 @@ public:
     static Eigen::Matrix<double,4,4> toMatrix4d(const cv::Mat &cvMat4);
     static Eigen::Matrix<float,3,3> toMatrix3f(const cv::Mat &cvMat3);
     static Eigen::Matrix<float,4,4> toMatrix4f(const cv::Mat &cvMat4);
+    static Eigen::Matrix4f toMatrix4f(const g2o::Sim3 &Sim3) {
+      Eigen::Matrix4f eigS = Eigen::Matrix4f::Identity();
+      float s = (float)Sim3.scale();
+      eigS.block<3, 3>(0, 0) = s * Sim3.rotation().toRotationMatrix().cast<float>();
+      eigS.block<3, 1>(0, 3) = Sim3.translation().cast<float>();
+      return eigS;
+    }
     static std::vector<float> toQuaternion(const cv::Mat &M);
 
     static bool isRotationMatrix(const cv::Mat &R);
@@ -73,7 +84,7 @@ public:
 
     //TODO: Sophus migration, to be deleted in the future
     static Sophus::SE3<float> toSophus(const cv::Mat& T);
-    static Sophus::Sim3f toSophus(const g2o::Sim3& S);
+    //static Sophus::Sim3f toSophus(const g2o::Sim3& S);
 };
 
 }// namespace ORB_SLAM

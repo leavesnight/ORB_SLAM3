@@ -26,7 +26,11 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <Eigen/Dense>
+#ifdef USE_SOPHUS_NEWEST
 #include <sophus/se3.hpp>
+#else
+#include "sophus/se3_extra.h"
+#endif
 #include <mutex>
 
 #include "SerializationUtils.h"
