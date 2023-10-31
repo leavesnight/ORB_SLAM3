@@ -414,7 +414,18 @@ public:
 
     Eigen::Matrix<double,6,6> GetHessian(){
         linearizeOplus();
-        return _jacobianOplusXi.transpose()*information()*_jacobianOplusXi;
+        Eigen::Vector3d rho;
+        bool robust = true;
+        if (robust) {
+            const g2o::RobustKernel* robustkernel = robustKernel();
+            if (robustkernel)
+                robustkernel->robustify(chi2(), rho);
+            else
+                robust = false;
+        }
+        const InformationType& rinfo = robust ? InformationType(rho[1] * information()) : information();
+        return _jacobianOplusXi.transpose()*rinfo*_jacobianOplusXi;
+        //return _jacobianOplusXi.transpose()*information()*_jacobianOplusXi;
     }
 
 public:
@@ -514,7 +525,17 @@ public:
         J.block<9,3>(0,12) = _jacobianOplus[3];
         J.block<9,6>(0,15) = _jacobianOplus[4];
         J.block<9,3>(0,21) = _jacobianOplus[5];
-        return J.transpose()*information()*J;
+        Eigen::Vector3d rho;
+        bool robust = true;
+        if (robust) {
+            const g2o::RobustKernel* robustkernel = robustKernel();
+            if (robustkernel)
+                robustkernel->robustify(chi2(), rho);
+            else
+                robust = false;
+        }
+        const InformationType& rinfo = robust ? InformationType(rho[1] * information()) : information();
+        return J.transpose()*rinfo*J;
     }
 
     Eigen::Matrix<double,18,18> GetHessianNoPose1(){
@@ -658,7 +679,17 @@ public:
         Eigen::Matrix<double,3,6> J;
         J.block<3,3>(0,0) = _jacobianOplusXi;
         J.block<3,3>(0,3) = _jacobianOplusXj;
-        return J.transpose()*information()*J;
+        Eigen::Vector3d rho;
+        bool robust = true;
+        if (robust) {
+            const g2o::RobustKernel* robustkernel = robustKernel();
+            if (robustkernel)
+                robustkernel->robustify(chi2(), rho);
+            else
+                robust = false;
+        }
+        const InformationType& rinfo = robust ? InformationType(rho[1] * information()) : information();
+        return J.transpose()*rinfo*J;
     }
 
     Eigen::Matrix3d GetHessian2(){
@@ -694,7 +725,17 @@ public:
         Eigen::Matrix<double,3,6> J;
         J.block<3,3>(0,0) = _jacobianOplusXi;
         J.block<3,3>(0,3) = _jacobianOplusXj;
-        return J.transpose()*information()*J;
+        Eigen::Vector3d rho;
+        bool robust = true;
+        if (robust) {
+            const g2o::RobustKernel* robustkernel = robustKernel();
+            if (robustkernel)
+                robustkernel->robustify(chi2(), rho);
+            else
+                robust = false;
+        }
+        const InformationType& rinfo = robust ? InformationType(rho[1] * information()) : information();
+        return J.transpose()*rinfo*J;
     }
 
     Eigen::Matrix3d GetHessian2(){
@@ -748,7 +789,17 @@ public:
             J.block<15,3>(0,6) = _jacobianOplus[1];
             J.block<15,3>(0,9) = _jacobianOplus[2];
             J.block<15,3>(0,12) = _jacobianOplus[3];
-            return J.transpose()*information()*J;
+            Eigen::Vector3d rho;
+            bool robust = true;
+            if (robust) {
+                const g2o::RobustKernel* robustkernel = robustKernel();
+                if (robustkernel)
+                    robustkernel->robustify(chi2(), rho);
+                else
+                    robust = false;
+            }
+            const InformationType& rinfo = robust ? InformationType(rho[1] * information()) : information();
+            return J.transpose()*rinfo*J;
         }
 
         Eigen::Matrix<double,9,9> GetHessianNoPose(){
