@@ -19,7 +19,8 @@
 
 #include "LoopClosing.h"
 
-#include "Sim3Solver.h"
+//#include "Sim3Solver.h"
+#include "map/icp/Sim3Solver.h"
 #include "Converter.h"
 #include "Optimizer.h"
 #include "ORBmatcher.h"
@@ -652,7 +653,8 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
         int nMostBoWNumMatches = 0;
 
         std::vector<MapPoint*> vpMatchedPoints = std::vector<MapPoint*>(mpCurrentKF->GetMapPointMatches().size(), static_cast<MapPoint*>(NULL));
-        std::vector<KeyFrame*> vpKeyFrameMatchedMP = std::vector<KeyFrame*>(mpCurrentKF->GetMapPointMatches().size(), static_cast<KeyFrame*>(NULL));
+        std::vector<KeyFrame*> vpKeyFrameMatchedMP = std::vector<KeyFrame*>(1 + mpCurrentKF->GetMapPointMatches().size(), static_cast<KeyFrame*>(NULL));
+        vpKeyFrameMatchedMP[0] = mpCurrentKF;
 
         int nIndexMostBoWMatchesKF=0;
         for(int j=0; j<vpCovKFi.size(); ++j)
@@ -682,7 +684,7 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
                     numBoWMatches++;
 
                     vpMatchedPoints[k]= pMPi_j;
-                    vpKeyFrameMatchedMP[k] = vpCovKFi[j];
+                    vpKeyFrameMatchedMP[1 + k] = vpCovKFi[j];
                 }
             }
         }
@@ -696,7 +698,10 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
             if(mpTracker->mSensor==System::IMU_MONOCULAR && !mpCurrentKF->GetMap()->GetIniertialBA2())
                 bFixedScale=false;
 
-            Sim3Solver solver = Sim3Solver(mpCurrentKF, pMostBoWMatchesKF, vpMatchedPoints, bFixedScale, vpKeyFrameMatchedMP);
+            //Sim3Solver solver = Sim3Solver(mpCurrentKF, pMostBoWMatchesKF, vpMatchedPoints, bFixedScale, vpKeyFrameMatchedMP);
+            vpKeyFrameMatchedMP.resize(2);
+            vpKeyFrameMatchedMP[1] = pMostBoWMatchesKF;
+            Sim3Solver solver = Sim3Solver(vpKeyFrameMatchedMP, vpMatchedPoints, bFixedScale);
             solver.SetRansacParameters(0.99, nBoWInliers, 300); // at least 15 inliers
 
             bool bNoMore = false;

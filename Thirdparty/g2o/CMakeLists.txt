@@ -174,5 +174,5 @@ g2o/stuff/os_specific.c
 g2o/stuff/os_specific.h
 g2o/stuff/string_tools.cpp
 g2o/stuff/property.cpp       
-g2o/stuff/property.h       
+g2o/stuff/property.h
 )

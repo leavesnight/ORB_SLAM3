@@ -83,7 +83,7 @@ src/MapDrawer.cc
 src/Optimizer.cc
 src/Frame.cc
 src/KeyFrameDatabase.cc
-src/Sim3Solver.cc
+#src/Sim3Solver.cc
 src/Viewer.cc
 src/ImuTypes.cc
 src/G2oTypes.cc
@@ -124,7 +124,10 @@ include/GeometricTools.h
 include/TwoViewReconstruction.h
 include/SerializationUtils.h
 include/Config.h
-include/Settings.h)
+include/Settings.h
+        #vieo
+        map/icp/Sim3Solver.cc
+        )
 
 add_subdirectory(Thirdparty/g2o)
 
