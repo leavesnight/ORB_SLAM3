@@ -2872,13 +2872,71 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
         //assert(mit->second>=3);
     }
 
+  if (pbStopFlag)       // true in LocalMapping
+    if (*pbStopFlag) {  // if mbAbortBA
+      return;
+    }
+
     optimizer.initializeOptimization();
     optimizer.computeActiveErrors();
     float err = optimizer.activeRobustChi2();
     if(pbStopFlag)
         optimizer.setForceStopFlag(pbStopFlag);
-    optimizer.optimize(opt_it); // Originally to 2
+    int optit[2] = {5, 10};
+  bool bDoMore = true;
+    if (bLarge) optit[0] = bDoMore? 2 : 4;
+    else optit[0] = bDoMore?4:10;
+    optit[1] = opt_it - optit[0];
+    optimizer.optimize(optit[0]); // Originally to 2
+
+  if (pbStopFlag)
+    if (*pbStopFlag)  // judge mbAbortBA again
+      bDoMore = false;
+  if (bDoMore) {
+    const float chi2Mono = 5.991;
+    // Check inlier observations
+    for (size_t i = 0, iend = vpEdgesMono.size(); i < iend; i++) {
+      auto e = vpEdgesMono[i];
+      MapPoint* pMP = vpMapPointEdgeMono[i];
+      // ref from ORB3
+      bool bClose = pMP->mTrackDepth < thresh_depth_close;
+
+      if (pMP->isBad())  // why this can be true?
+        continue;
+
+      // if chi2 error too big(5% wrong) or Zc<=0 then outlier
+      if (e->chi2() > (bClose ? 1.5 * chi2Mono : chi2Mono) || !e->isDepthPositive()) {
+        e->setLevel(1);
+      }
+
+      e->setRobustKernel(0);  // cancel RobustKernel
+    }
+    for (size_t i = 0, iend = vpEdgesStereo.size(); i < iend; i++) {
+      auto e = vpEdgesStereo[i];
+      MapPoint* pMP = vpMapPointEdgeStereo[i];
+
+      if (pMP->isBad()) continue;
+
+      if (e->chi2() > 7.815 || !e->isDepthPositive())  // chi2(0.05,3)
+      {
+        e->setLevel(1);
+      }
+
+      e->setRobustKernel(0);
+    }
+
+    // Optimize again without the outliers
+    optimizer.initializeOptimization(0);
+    optimizer.optimize(optit[1]);  // 10 steps same as motion-only BA
+  }
+
     float err_end = optimizer.activeRobustChi2();
+  // TODO: Some convergence problems have been detected here
+  if((2*err < err_end || isnan(err) || isnan(err_end)) && !bLarge) //bGN)
+  {
+    cout << "FAIL LOCAL-INERTIAL BA!!!!" << endl;
+    return;
+  }
 
     vector<pair<KeyFrame*,MapPoint*> > vToErase;
     vToErase.reserve(vpEdgesMono.size()+vpEdgesStereo.size());
@@ -2911,7 +2969,7 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
         if(pMP->isBad())
             continue;
 
-        if(e->chi2()>chi2Stereo2)
+        if(e->chi2()>chi2Stereo2 || !e->isDepthPositive())
         {
             KeyFrame* pKFi = vpEdgeKFStereo[i];
             vToErase.push_back(make_pair(pKFi,pMP));
@@ -2920,14 +2978,6 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
 
     // Get Map Mutex and erase outliers
     unique_lock<mutex> lock(pMap->mMutexMapUpdate);
-
-
-    // TODO: Some convergence problems have been detected here
-    if((2*err < err_end || isnan(err) || isnan(err_end)) && !bLarge) //bGN)
-    {
-        cout << "FAIL LOCAL-INERTIAL BA!!!!" << endl;
-        return;
-    }
 
 
 
