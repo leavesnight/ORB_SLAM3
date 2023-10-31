@@ -686,6 +686,7 @@ void KeyFrameDatabase::DetectNBestCandidates(KeyFrame *pKF, vector<KeyFrame*> &v
             if(pKF2->mnPlaceRecognitionQuery!=pKF->mnId)
                 continue;
 
+            if (pKF2->mnPlaceRecognitionWords <= minCommonWords) continue;
             accScore+=pKF2->mPlaceRecognitionScore;
             if(pKF2->mPlaceRecognitionScore>bestScore)
             {
