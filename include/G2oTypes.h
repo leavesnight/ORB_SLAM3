@@ -450,6 +450,12 @@ public:
         _error = obs - VPose->estimate().ProjectStereo(VPoint->estimate(),cam_idx);
     }
 
+    bool isDepthPositive()
+    {
+        const g2o::VertexSBAPointXYZ* VPoint = static_cast<const g2o::VertexSBAPointXYZ*>(_vertices[0]);
+        const VertexPose* VPose = static_cast<const VertexPose*>(_vertices[1]);
+        return VPose->estimate().isDepthPositive(VPoint->estimate(),cam_idx);
+    }
 
     virtual void linearizeOplus();
 
@@ -489,6 +495,12 @@ public:
         const VertexPose* VPose = static_cast<const VertexPose*>(_vertices[0]);
         const Eigen::Vector3d obs(_measurement);
         _error = obs - VPose->estimate().ProjectStereo(Xw, cam_idx);
+    }
+
+    bool isDepthPositive()
+    {
+        const VertexPose* VPose = static_cast<const VertexPose*>(_vertices[0]);
+        return VPose->estimate().isDepthPositive(Xw,cam_idx);
     }
 
     virtual void linearizeOplus();
