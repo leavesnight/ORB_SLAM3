@@ -3070,7 +3070,7 @@ bool Tracking::TrackLocalMap()
                 else
                     mnMatchesInliers++;
             }
-            else if(mSensor==System::STEREO)
+            else if(mSensor==System::STEREO || mSensor == System::IMU_STEREO)
                 mCurrentFrame.mvpMapPoints[i] = static_cast<MapPoint*>(NULL);
         }
     }
@@ -3114,6 +3114,8 @@ bool Tracking::TrackLocalMap()
 
 bool Tracking::NeedNewKeyFrame()
 {
+//#define ORB3_STRATEGY
+#ifdef ORB3_STRATEGY
     if((mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD) && !mpAtlas->GetCurrentMap()->isImuInitialized())
     {
         if (mSensor == System::IMU_MONOCULAR && (mCurrentFrame.mTimeStamp-mpLastKeyFrame->mTimeStamp)>=0.25)
@@ -3123,6 +3125,7 @@ bool Tracking::NeedNewKeyFrame()
         else
             return false;
     }
+#endif
 
     if(mbOnlyTracking)
         return false;
@@ -3208,25 +3211,35 @@ bool Tracking::NeedNewKeyFrame()
     // Condition 1b: More than "MinFrames" have passed and Local Mapping is idle
     const bool c1b = ((mCurrentFrame.mnId>=mnLastKeyFrameId+mMinFrames) && bLocalMappingIdle); //mpLocalMapper->KeyframesInQueue() < 2);
     //Condition 1c: tracking is weak
-    const bool c1c = mSensor!=System::MONOCULAR && mSensor!=System::IMU_MONOCULAR && mSensor!=System::IMU_STEREO && mSensor!=System::IMU_RGBD && (mnMatchesInliers<nRefMatches*0.25 || bNeedToInsertClose) ;
+  Map* pCurrentMap = mpAtlas->GetCurrentMap();
+  bool bimu_inited = !pCurrentMap ? false : pCurrentMap->isImuInitialized();
+    // const bool c1c = mSensor!=System::MONOCULAR && mSensor!=System::IMU_MONOCULAR && mSensor!=System::IMU_STEREO && mSensor!=System::IMU_RGBD && (mnMatchesInliers<nRefMatches*0.25 || bNeedToInsertClose) ;
+    const bool c1c = (mSensor!=System::MONOCULAR && mSensor!=System::IMU_MONOCULAR) && (mnMatchesInliers<nRefMatches*0.25 || (!bimu_inited && bNeedToInsertClose));
     // Condition 2: Few tracked points compared to reference keyframe. Lots of visual odometry compared to map matches.
     const bool c2 = (((mnMatchesInliers<nRefMatches*thRefRatio || bNeedToInsertClose)) && mnMatchesInliers>15);
 
     //std::cout << "NeedNewKF: c1a=" << c1a << "; c1b=" << c1b << "; c1c=" << c1c << "; c2=" << c2 << std::endl;
     // Temporal condition for Inertial cases
+  double timegap = 0.5;
+  // JW uses different timegap during IMU Initialization(0.1s); 0.25 ref from ORB3
+  if (!bimu_inited) timegap = 0.25;
     bool c3 = false;
     if(mpLastKeyFrame)
     {
         if (mSensor==System::IMU_MONOCULAR)
         {
-            if ((mCurrentFrame.mTimeStamp-mpLastKeyFrame->mTimeStamp)>=0.5)
+            if ((mCurrentFrame.mTimeStamp-mpLastKeyFrame->mTimeStamp)>=timegap)
                 c3 = true;
         }
         else if (mSensor==System::IMU_STEREO || mSensor == System::IMU_RGBD)
         {
-            if ((mCurrentFrame.mTimeStamp-mpLastKeyFrame->mTimeStamp)>=0.5)
+            if ((mCurrentFrame.mTimeStamp-mpLastKeyFrame->mTimeStamp)>=timegap)
                 c3 = true;
         }
+#ifndef ORB3_STRATEGY
+        if (!bLocalMappingIdle) c3 = false;
+        if (mState!=RECENTLY_LOST && mnMatchesInliers <= 15) c3 = false;
+#endif
     }
 
     bool c4 = false;
@@ -3235,11 +3248,13 @@ bool Tracking::NeedNewKeyFrame()
     else
         c4=false;
 
-    if(((c1a||c1b||c1c) && c2)||c3 ||c4)
+    bool c3_vieo = (mState == RECENTLY_LOST) && (c1a || c1b || c1c) && nNonTrackedClose > 70;
+
+    if(((c1a||c1b||c1c) && c2)||c3 ||c4 || c3_vieo)
     {
         // If the mapping accepts keyframes, insert keyframe.
         // Otherwise send a signal to interrupt BA
-        if(bLocalMappingIdle || mpLocalMapper->IsInitializing())
+        if(bLocalMappingIdle/* || mpLocalMapper->IsInitializing()*/)
         {
             return true;
         }
