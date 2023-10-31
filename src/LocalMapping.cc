@@ -133,7 +133,8 @@ void LocalMapping::Run()
 
                         if(dist>0.05)
                             mTinit += mpCurrentKeyFrame->mTimeStamp - mpCurrentKeyFrame->mPrevKF->mTimeStamp;
-                        if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2())
+                        mTinit = mpCurrentKeyFrame->mTimeStamp - mpCurrentKeyFrame->GetMap()->GetOriginKF()->mTimeStamp;
+                        if(0 && !mpCurrentKeyFrame->GetMap()->GetIniertialBA2())
                         {
                             if((mTinit<10.f) && (dist<0.02))
                             {

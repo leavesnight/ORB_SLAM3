@@ -1178,7 +1178,7 @@ void LoopClosing::CorrectLoop()
         vdLoopFusion_ms.push_back(timeFusion);
 #endif
     //cout << "Optimize essential graph" << endl;
-    if(pLoopMap->IsInertial() && pLoopMap->isImuInitialized())
+    if(0 && pLoopMap->IsInertial() && pLoopMap->isImuInitialized())
     {
         Optimizer::OptimizeEssentialGraph4DoF(pLoopMap, mpLoopMatchedKF, mpCurrentKF, NonCorrectedSim3, CorrectedSim3, LoopConnections);
     }
