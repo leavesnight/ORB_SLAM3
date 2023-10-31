@@ -543,9 +543,11 @@ void Optimizer::FullInertialBA(Map *pMap, int its, const bool bFixLocal, const l
 
                 optimizer.addEdge(ei);
 
+                EdgeGyroRW* egr = nullptr;
+                EdgeAccRW* ear = nullptr;
                 if (!bInit)
                 {
-                    EdgeGyroRW* egr= new EdgeGyroRW();
+                    egr= new EdgeGyroRW();
                     egr->setVertex(0,VG1);
                     egr->setVertex(1,VG2);
                     Eigen::Matrix3d InfoG = pKFi->mpImuPreintegrated->C.block<3,3>(9,9).cast<double>().inverse();
@@ -553,13 +555,29 @@ void Optimizer::FullInertialBA(Map *pMap, int its, const bool bFixLocal, const l
                     egr->computeError();
                     optimizer.addEdge(egr);
 
-                    EdgeAccRW* ear = new EdgeAccRW();
+                    ear = new EdgeAccRW();
                     ear->setVertex(0,VA1);
                     ear->setVertex(1,VA2);
                     Eigen::Matrix3d InfoA = pKFi->mpImuPreintegrated->C.block<3,3>(12,12).cast<double>().inverse();
                     ear->setInformation(InfoA);
                     ear->computeError();
                     optimizer.addEdge(ear);
+                }
+                bool bfixedkf = dynamic_cast<g2o::OptimizableGraph::Vertex*>(VG1)->fixed();
+                if (bfixedkf) {
+                    ei->setInformation(ei->information()*1e-2);
+                    if (egr) {
+                      egr->setInformation(egr->information() * 1e-2);
+                      g2o::RobustKernelHuber* rki = new g2o::RobustKernelHuber;
+                      egr->setRobustKernel(rki);
+                      rki->setDelta(sqrt(7.815));
+                    }
+                    if (ear) {
+                      ear->setInformation(ear->information() * 1e-2);
+                      g2o::RobustKernelHuber* rki = new g2o::RobustKernelHuber;
+                      ear->setRobustKernel(rki);
+                      rki->setDelta(sqrt(7.815));
+                    }
                 }
             }
             else
@@ -2654,7 +2672,22 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
             vear[i]->setVertex(0,VA1);
             vear[i]->setVertex(1,VA2);
             Eigen::Matrix3d InfoA = pKFi->mpImuPreintegrated->C.block<3,3>(12,12).cast<double>().inverse();
-            vear[i]->setInformation(InfoA);           
+            vear[i]->setInformation(InfoA);
+
+          if (i==N-1) {
+            if (vegr[i]) {
+              vegr[i]->setInformation(vegr[i]->information() * 1e-2);
+              g2o::RobustKernelHuber* rki = new g2o::RobustKernelHuber;
+              vegr[i]->setRobustKernel(rki);
+              rki->setDelta(sqrt(7.815));
+            }
+            if (vear[i]) {
+              vear[i]->setInformation(vear[i]->information() * 1e-2);
+              g2o::RobustKernelHuber* rki = new g2o::RobustKernelHuber;
+              vear[i]->setRobustKernel(rki);
+              rki->setDelta(sqrt(7.815));
+            }
+          }
 
             optimizer.addEdge(vear[i]);
         }
@@ -4694,6 +4727,26 @@ int Optimizer::PoseInertialOptimizationLastKeyFrame(Frame *pFrame, bool bRecInit
     Eigen::Matrix3d InfoA = pFrame->mpImuPreintegrated->C.block<3,3>(12,12).cast<double>().inverse();
     ear->setInformation(InfoA);
     optimizer.addEdge(ear);
+
+  bool bfixedkf = dynamic_cast<g2o::OptimizableGraph::Vertex*>(VGk)->fixed();
+  if (bfixedkf) {
+    ei->setInformation(ei->information()*1e-2);
+    g2o::RobustKernelHuber* rki = new g2o::RobustKernelHuber;
+    ei->setRobustKernel(rki);
+    rki->setDelta(sqrt(16.92));
+    if (egr) {
+      egr->setInformation(egr->information() * 1e-2);
+      g2o::RobustKernelHuber* rki = new g2o::RobustKernelHuber;
+      egr->setRobustKernel(rki);
+      rki->setDelta(sqrt(7.815));
+    }
+    if (ear) {
+      ear->setInformation(ear->information() * 1e-2);
+      g2o::RobustKernelHuber* rki = new g2o::RobustKernelHuber;
+      ear->setRobustKernel(rki);
+      rki->setDelta(sqrt(7.815));
+    }
+  }
 
     // We perform 4 optimizations, after each optimization we classify observation as inlier/outlier
     // At the next optimization, outliers are not included, but at the end they can be classified as inliers again.
