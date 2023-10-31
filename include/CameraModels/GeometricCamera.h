@@ -32,7 +32,11 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/assume_abstract.hpp>
 
+#ifdef USE_SOPHUS_NEWEST
 #include <sophus/se3.hpp>
+#else
+#include "sophus/se3_extra.h"
+#endif
 
 #include <Eigen/Geometry>
 

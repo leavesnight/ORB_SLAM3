@@ -433,7 +433,7 @@ namespace ORB_SLAM3
         return nmatches;
     }
 
-    int ORBmatcher::SearchByProjection(KeyFrame* pKF, Sophus::Sim3f &Scw, const vector<MapPoint*> &vpPoints,
+    /*int ORBmatcher::SearchByProjection(KeyFrame* pKF, Sophus::Sim3f &Scw, const vector<MapPoint*> &vpPoints,
                                        vector<MapPoint*> &vpMatched, int th, float ratioHamming)
     {
         // Get Calibration Parameters for later projection
@@ -538,9 +538,153 @@ namespace ORB_SLAM3
         }
 
         return nmatches;
-    }
+    }*/
 
-    int ORBmatcher::SearchByProjection(KeyFrame* pKF, Sophus::Sim3<float> &Scw, const std::vector<MapPoint*> &vpPoints, const std::vector<KeyFrame*> &vpPointsKFs,
+    int ORBmatcher::SearchByProjection(KeyFrame *pKF, const Matrix4f &Scw, const vector<MapPoint *> &vpPoints,
+                                   vector<MapPoint *> &vpMatched, int th, float ratioHamming,
+                                   const std::vector<KeyFrame *> *pvppts_kfs, std::vector<KeyFrame *> *pvpmatched_kf) {
+      // Decompose Scw=s*Rcw
+      Matrix3f sRcw = Scw.block<3, 3>(0, 0);
+      const float scw = sqrt(sRcw.row(0).dot(
+          sRcw.row(0))); // s=sqrt(s^2*[(R*R.t())(0,0) or norm(Rcw.row(0))]^2)
+      // for scw=sc/1 then tcw_trueScale/tcw(in Tcw)=(tcw in Scw)/sc=Scw.rowRange(0,3).col(3)/scw
+      Sophus::SE3exf Tcrw(sRcw / scw, Scw.block<3, 1>(0, 3) / scw);
+      // Ow=twc(in Twc)=-Rcw.t()*tcw(in Tcw) or Tcw^(-1).rowRange(0,3).col(3)
+      Sophus::SO3exf Rwcr = Tcrw.so3().inverse();
+      Vector3f twcr = -(Rwcr * Tcrw.translation());
+
+      // Set of MapPoints already found in the KeyFrame, notice the MPs is the matched MPs not the pKF->mvpMapPoints
+      set<MapPoint *> spAlreadyFound(vpMatched.begin(), vpMatched.end());
+      // vpMatched may has nullptr=>so need to erase nullptr
+      spAlreadyFound.erase(static_cast<MapPoint *>(nullptr));
+
+      int nmatches =
+          0; // additional matches between vpPoints and pKF->mvpMapPoints
+
+      // For each Candidate MapPoint Project and Match
+      const float thresh_dist = TH_LOW * ratioHamming;
+      for (int iMP = 0, iendMP = vpPoints.size(); iMP < iendMP; iMP++) {
+        MapPoint *pMP = vpPoints[iMP];
+        KeyFrame *pkfi = nullptr;
+        if (pvppts_kfs)
+          pkfi = (*pvppts_kfs)[iMP];
+
+        // Discard Bad MapPoints and already found
+        if (pMP->isBad() || spAlreadyFound.count(pMP))
+          continue;
+
+        // Get 3D Coords.
+        Vector3f p3Dw = pMP->GetWorldPos();
+        Vector3f Pn = pMP->GetNormal();
+
+        // Transform into Camera Coords.
+        Vector3f Pcr = Tcrw * p3Dw; // Xc=(Tcw*Xw)(0:2)
+        // TODO:only work for EuRoC! but we just test its performance diff.
+        size_t n_cams = 1;//!pKF->mpCameras.size() ? 1 : pKF->mpCameras.size();
+        for (size_t cami = 0; cami < n_cams; ++cami) {
+          Vector3f Pc = Pcr;
+          Vector3f twc = twcr;
+          //assert(pKF->mpCameras.size() > cami);
+          //camm::Camera *pcam1 = pKF->mpCameras[cami].get();
+          auto pcam1 = pKF->mpCamera;
+          /*Pc = pcam1->GetTcr() * Pc;
+          twc += Rwcr * pcam1->GetTrc().translation();*/
+          // Depth must be positive; == rectified by leavesnight
+          if (Pc(2) <= 0.0)
+            continue;
+
+          // Project into Image
+          const float invz = 1 / Pc(2);
+          float u, v;
+          assert(pcam1);
+          /*if (!Frame::usedistort_)*/ {
+            // Get Calibration Parameters for later projection
+            Vector3f p_normalize = Vector3f(Pc(0) * invz, Pc(1) * invz, 1);
+            Vector3f uv = pcam1->toK_().cast<float>() * p_normalize; // K*Xc
+            u = uv[0];
+            v = uv[1];
+          }/* else {
+            Vector2img pt;
+            pcam1->Project(Pc.cast<camm::Camera::Tio>(), &pt);
+            u = pt[0];
+            v = pt[1];
+          }*/
+
+          // Point must be inside the image
+          if (!pKF->IsInImage(/*cami,*/ u, v))
+            continue;
+
+          Vector3f PO = p3Dw - twc;
+          const float dist = PO.norm();
+          // Depth must be inside the scale invariance region of the point
+          const float maxDistance = pMP->GetMaxDistanceInvariance();
+          const float minDistance = pMP->GetMinDistanceInvariance();
+          if (dist < minDistance || dist > maxDistance)
+            continue;
+          // Viewing angle must be less than 60 deg, 60 deg also used in mCurrentFrame.isInFrustum() in SearchLocalPoints()
+          if (PO.dot(Pn) < 0.5 * dist)
+            continue;
+          int nPredictedLevel = pMP->PredictScale(dist, pKF);
+
+          // Search in a radius
+          // here use th=10 in ComputeSim3() in LoopClosing, same as the first/coarse trial threshold adding inliers by SBP in Relocalization() in Tracking
+          const float radius =
+              th * pKF->mvScaleFactors[nPredictedLevel];//pKF->scalepyrinfo_.vscalefactor_[nPredictedLevel];
+
+          const vector<size_t> vIndices =
+              pKF->GetFeaturesInArea(/*cami,*/ u, v, radius);
+
+          if (vIndices.empty())
+            continue;
+
+          // Match to the most similar keypoint in the radius
+          const cv::Mat dMP = pMP->GetDescriptor();
+
+          int bestDist = 256;
+          int bestIdx = -1;
+          for (vector<size_t>::const_iterator vit = vIndices.begin(),
+                                              vend = vIndices.end();
+               vit != vend; vit++) {
+            const size_t idx = *vit;
+            // here vpMatched[idx]!=pMP(for !spAlreadyFound.count(pMP)) but if it's not nullptr meaning
+            //  it/pKF->mvpMapPoints[idx] has already been matched(pMP is not matched)
+            if (vpMatched[idx])
+              continue;
+
+            const int &kpLevel = pKF->mvKeysUn[idx].octave;;//pKF->mvKeys[idx].octave;
+
+            // check nPredictedLevel error here not in pKF->GetFeaturesInArea(), same as SearchBySim3(), like
+            //  SBP(Frame,vec<MP*>)
+            if (kpLevel < nPredictedLevel - 1 || kpLevel > nPredictedLevel)
+              continue;
+
+            // const cv::Mat &dKF = !pKF->mapn2ijn_.size() ? pKF->mDescriptors.row(idx) :
+            //  pKF->vdescriptors_[cami].row(get<2>(pKF->mapn2ijn_[idx]));
+            KeyFrame &F = *pKF;
+            const cv::Mat &d = F.mDescriptors.row(idx);
+
+            const int dist = DescriptorDistance(dMP, d);
+
+            if (dist < bestDist) {
+              bestDist = dist;
+              bestIdx = idx;
+            }
+          }
+
+          // but use SBBoW standard threshold for a stricter addition of matches(for validation of nTotalMatches) for
+          //  LoopClosing
+          if ((float)bestDist <= thresh_dist) {
+            vpMatched[bestIdx] = pMP; // rectify vpMatched(add matches)
+            if (pvpmatched_kf)
+              (*pvpmatched_kf)[bestIdx] = pkfi;
+            nmatches++;
+          }
+        }
+      }
+
+      return nmatches;
+    }
+    /*int ORBmatcher::SearchByProjection(KeyFrame* pKF, Sophus::Sim3<float> &Scw, const std::vector<MapPoint*> &vpPoints, const std::vector<KeyFrame*> &vpPointsKFs,
                                        std::vector<MapPoint*> &vpMatched, std::vector<KeyFrame*> &vpMatchedKF, int th, float ratioHamming)
     {
         // Get Calibration Parameters for later projection
@@ -652,7 +796,7 @@ namespace ORB_SLAM3
         }
 
         return nmatches;
-    }
+    }*/
 
     int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f> &vbPrevMatched, vector<int> &vnMatches12, int windowSize)
     {
@@ -1347,7 +1491,7 @@ namespace ORB_SLAM3
         return nFused;
     }
 
-    int ORBmatcher::Fuse(KeyFrame *pKF, Sophus::Sim3f &Scw, const vector<MapPoint *> &vpPoints, float th, vector<MapPoint *> &vpReplacePoint)
+    int ORBmatcher::Fuse(KeyFrame *pKF, const Matrix4f &Scw, const vector<MapPoint *> &vpPoints, float th, vector<MapPoint *> &vpReplacePoint)
     {
         // Get Calibration Parameters for later projection
         const float &fx = pKF->fx;
@@ -1356,7 +1500,10 @@ namespace ORB_SLAM3
         const float &cy = pKF->cy;
 
         // Decompose Scw
-        Sophus::SE3f Tcw = Sophus::SE3f(Scw.rotationMatrix(),Scw.translation()/Scw.scale());
+        // Sophus::SE3f Tcw = Sophus::SE3f(Scw.rotationMatrix(),Scw.translation()/Scw.scale());
+        Matrix3f sRcw = Scw.block<3, 3>(0, 0);
+        const float scw = sqrt(sRcw.row(0).dot(sRcw.row(0))); // s=sqrt(s^2*[(R*R.t())(0,0) or norm(Rcw.row(0))]^2)
+        Sophus::SE3f Tcw = Sophus::SE3f(Scw.block<3,3>(0,0),Scw.block<3,1>(0,3)/scw);
         Eigen::Vector3f Ow = Tcw.inverse().translation();
 
         // Set of MapPoints already found in the KeyFrame
@@ -1464,7 +1611,7 @@ namespace ORB_SLAM3
         return nFused;
     }
 
-    int ORBmatcher::SearchBySim3(KeyFrame* pKF1, KeyFrame* pKF2, std::vector<MapPoint *> &vpMatches12, const Sophus::Sim3f &S12, const float th)
+    /*int ORBmatcher::SearchBySim3(KeyFrame* pKF1, KeyFrame* pKF2, std::vector<MapPoint *> &vpMatches12, const Sophus::Sim3f &S12, const float th)
     {
         const float &fx = pKF1->fx;
         const float &fy = pKF1->fy;
@@ -1681,7 +1828,7 @@ namespace ORB_SLAM3
         }
 
         return nFound;
-    }
+    }*/
 
     int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono)
     {

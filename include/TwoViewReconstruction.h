@@ -23,7 +23,11 @@
 #include <Eigen/Core>
 #include <unordered_set>
 
+#ifdef USE_SOPHUS_NEWEST
 #include <sophus/se3.hpp>
+#else
+#include "sophus/se3_extra.h"
+#endif
 
 namespace ORB_SLAM3
 {

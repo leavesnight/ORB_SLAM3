@@ -27,11 +27,11 @@ Eigen::Matrix3f GeometricTools::ComputeF12(KeyFrame* &pKF1, KeyFrame* &pKF2)
 {
     Sophus::SE3<float> Tc1w = pKF1->GetPose();
     Sophus::Matrix3<float> Rc1w = Tc1w.rotationMatrix();
-    Sophus::SE3<float>::TranslationMember tc1w = Tc1w.translation();
+    Sophus::SE3<float>::TranslationType tc1w = Tc1w.translation();
 
     Sophus::SE3<float> Tc2w = pKF2->GetPose();
     Sophus::Matrix3<float> Rc2w = Tc2w.rotationMatrix();
-    Sophus::SE3<float>::TranslationMember tc2w = Tc2w.translation();
+    Sophus::SE3<float>::TranslationType tc2w = Tc2w.translation();
 
     Sophus::Matrix3<float> Rc1c2 = Rc1w * Rc2w.transpose();
     Eigen::Vector3f tc1c2 = -Rc1c2 * tc2w + tc1w;

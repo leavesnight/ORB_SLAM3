@@ -306,9 +306,9 @@ Sophus::SE3<float> Converter::toSophus(const cv::Mat &T) {
     return Sophus::SE3<float>(q,t);
 }
 
-Sophus::Sim3f Converter::toSophus(const g2o::Sim3& S) {
-    return Sophus::Sim3f(Sophus::RxSO3d((float)S.scale(), S.rotation().matrix()).cast<float>() ,
-                         S.translation().cast<float>());
-}
+//Sophus::Sim3f Converter::toSophus(const g2o::Sim3& S) {
+//    return Sophus::Sim3f(Sophus::RxSO3d((float)S.scale(), S.rotation().matrix()).cast<float>() ,
+//                         S.translation().cast<float>());
+//}
 
 } //namespace ORB_SLAM
