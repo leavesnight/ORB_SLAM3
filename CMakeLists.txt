@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 project(ORB_SLAM3)
 
+set(USE_SOPHUS_NEWEST 1)
+
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release)
 ENDIF()
@@ -44,13 +46,22 @@ find_package(realsense2)
 
 include_directories(
 ${PROJECT_SOURCE_DIR}
-        ${PROJECT_SOURCE_DIR}/common
 ${PROJECT_SOURCE_DIR}/include
 ${PROJECT_SOURCE_DIR}/include/CameraModels
-#${PROJECT_SOURCE_DIR}/Thirdparty/Sophus
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
 )
+
+if (${USE_SOPHUS_NEWEST})
+    add_definitions(-DUSE_SOPHUS_NEWEST)
+    include_directories(
+            ${PROJECT_SOURCE_DIR}/Thirdparty/Sophus
+    )
+else ()
+    include_directories(
+            ${PROJECT_SOURCE_DIR}/common
+    )
+endif ()
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 
