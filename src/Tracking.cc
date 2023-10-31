@@ -49,8 +49,18 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     mnInitialFrameId(0), mbCreatedMap(false), mnFirstFrameId(0), mpCamera2(nullptr), mpLastKeyFrame(static_cast<KeyFrame*>(NULL))
 {
     // Load camera parameters from settings file
-    if(settings){
-        newParameterLoader(settings);
+    if(settings) {
+      newParameterLoader(settings);
+
+      cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
+      auto node = fSettings["IMU.fastInit"];
+      mFastInit = false;
+      if (!node.empty()) {
+        mFastInit = static_cast<int>(fSettings["IMU.fastInit"]) != 0;
+      }
+
+      if (mFastInit)
+        cout << "Fast IMU initialization. Acceleration is not checked \n";
     }
     else{
         cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
