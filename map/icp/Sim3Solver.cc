@@ -306,12 +306,17 @@ void Sim3Solver::ComputeSim3(Matrix3f &P1, Matrix3f &P2) {
   int maxIndex; // should be zero
   eval.maxCoeff(&maxIndex);
   Vector3f vec = evec.block<3, 1>(1, maxIndex);
+  bool brank_enough = vec.norm();
 
-  // Rotation angle. sin is the norm of the imaginary part, cos is the real part
-  double ang = atan2(vec.norm(), evec(0, maxIndex));
-
-  // Angle-axis representation. quaternion angle is the half
-  vec = 2 * ang * vec / vec.norm();
+  if (brank_enough) {
+    // Rotation angle. sin is the norm of the imaginary part, cos is the real part
+    double ang = atan2(vec.norm(), evec(0, maxIndex));
+    // Angle-axis representation. quaternion angle is the half
+    // Notice P1 && P2 can both be rank deficient!
+    // PRINT_INFO_MUTEX("check P1=" << P1 << "," << P2 << "N=" << N << ",eval=" << eval.transpose()
+    //                             << ",vec0=" << vec.transpose() << endl);
+    vec = 2 * ang * vec / vec.norm();
+  }
   // computes the rotation matrix from angle-axis
   mR12i = Sophus::SO3exf::exp(vec).matrix();
 
