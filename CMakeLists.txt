@@ -127,6 +127,7 @@ include/Config.h
 include/Settings.h
         #vieo
         map/icp/Sim3Solver.cc
+        common/mlog/log.cpp
         )
 
 add_subdirectory(Thirdparty/g2o)

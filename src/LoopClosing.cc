@@ -691,6 +691,7 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
 
         //pMostBoWMatchesKF = vpCovKFi[pMostBoWMatchesKF];
 
+        // PRINT_INFO_MUTEX("numBoWMatches="<<numBoWMatches<<",tm curKF="<<fixed<<setprecision(9)<<mpCurrentKF->mTimeStamp<<endl);
         if(numBoWMatches >= nBoWMatches) // TODO pick a good threshold
         {
             // Geometric validation

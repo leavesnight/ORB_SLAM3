@@ -190,7 +190,7 @@ Sim3Solver::Matrix4f Sim3Solver::iterate(int nIterations, bool &bNoMore,
   nInliers = 0;
 
   if (N < mRansacMinInliers) {
-    PRINT_INFO_MUTEX("bNoMore by N: " << N << endl);
+    // PRINT_INFO_MUTEX("bNoMore by N: " << N << endl);
     bNoMore = true;
     return Matrix4f::Identity();
   }

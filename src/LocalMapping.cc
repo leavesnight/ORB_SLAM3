@@ -767,13 +767,17 @@ void LocalMapping::SearchInNeighbors()
     // Search matches by projection from current KF in target KFs
     ORBmatcher matcher;
     vector<MapPoint*> vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
+    int num_fused;
     for(vector<KeyFrame*>::iterator vit=vpTargetKFs.begin(), vend=vpTargetKFs.end(); vit!=vend; vit++)
     {
         KeyFrame* pKFi = *vit;
 
-        matcher.Fuse(pKFi,vpMapPointMatches);
-        if(pKFi->NLeft != -1) matcher.Fuse(pKFi,vpMapPointMatches, 3.0, true);
+        num_fused = matcher.Fuse(pKFi,vpMapPointMatches);
+        if(pKFi->NLeft != -1) {
+          num_fused +=matcher.Fuse(pKFi,vpMapPointMatches, 3.0, true);
+        }
     }
+    // cout << "over2 fused num = " << num_fused << endl;
 
 
     if (mbAbortBA)
@@ -801,8 +805,11 @@ void LocalMapping::SearchInNeighbors()
         }
     }
 
-    matcher.Fuse(mpCurrentKeyFrame,vpFuseCandidates);
-    if(mpCurrentKeyFrame->NLeft != -1) matcher.Fuse(mpCurrentKeyFrame,vpFuseCandidates, 3.0, true);
+    num_fused = matcher.Fuse(mpCurrentKeyFrame,vpFuseCandidates);
+    if(mpCurrentKeyFrame->NLeft != -1) {
+      num_fused+=matcher.Fuse(mpCurrentKeyFrame,vpFuseCandidates, 3.0, true);
+    }
+    // cout << "over3 fused2 num = " << num_fused << endl;
 
 
     // Update points

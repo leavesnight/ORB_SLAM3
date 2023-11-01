@@ -3250,6 +3250,10 @@ bool Tracking::NeedNewKeyFrame()
 
     bool c3_vieo = (mState == RECENTLY_LOST) && (c1a || c1b || c1c) && nNonTrackedClose > 70;
 
+  /*if (mCurrentFrame.mTimeStamp > 1413394927 && mCurrentFrame.mTimeStamp < 1413394928) {
+    cout << "Inliers/Ref="<<mnMatchesInliers<<"/"<<nRefMatches<<",refkftm="<<fixed<<setprecision(9)<<mpReferenceKF->mTimeStamp<<endl;
+    cout <<"NIC="<<(int)bNeedToInsertClose<<","<<(int)c1a<<(int)c1b<<(int)c1c<<(int)c2<<(int)c3<<(int)c3_vieo<< "check localmapidle="<<(int)bLocalMappingIdle<<",tm="<<fixed<<setprecision(9)<<mCurrentFrame.mTimeStamp<<endl;
+  }*/
     if(((c1a||c1b||c1c) && c2)||c3 ||c4 || c3_vieo)
     {
         // If the mapping accepts keyframes, insert keyframe.
