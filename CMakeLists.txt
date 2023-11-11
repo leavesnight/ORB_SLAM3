@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 2.8)
+#cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.16)
 project(ORB_SLAM3)
 
 set(USE_SOPHUS_NEWEST 0)
@@ -16,12 +17,13 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
 
 # Check C++11 or C++0x support
 include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
 CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
-if(COMPILER_SUPPORTS_CXX11)
-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+if(COMPILER_SUPPORTS_CXX17)
+    set(CMAKE_CXX_STANDARD 17)
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
    add_definitions(-DCOMPILEDWITHC11)
-   message(STATUS "Using flag -std=c++11.")
+   message(STATUS "Using flag -std=c++17.")
 elseif(COMPILER_SUPPORTS_CXX0X)
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
    add_definitions(-DCOMPILEDWITHC0X)
@@ -29,6 +31,8 @@ elseif(COMPILER_SUPPORTS_CXX0X)
 else()
    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
@@ -40,7 +44,13 @@ find_package(OpenCV 4.4)
 MESSAGE("OPENCV VERSION:")
 MESSAGE(${OpenCV_VERSION})
 
+message(STATUS "${PROJECT_NAME} CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
+message(STATUS "${PROJECT_NAME} CMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG}")
+message(STATUS "${PROJECT_NAME} CMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}")
+message(STATUS "${PROJECT_NAME} CMAKE_CXX_FLAGS_RELWITHDEBINFO=${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+
 find_package(Eigen3 3.1.0 REQUIRED)
+message(STATUS "${PROJECT_NAME} EIGEN3_INCLUDE_DIRS=${EIGEN3_INCLUDE_DIR}; LIBS=${Eigen3_LIBS}; ${Eigen3_VERSION}")
 find_package(Pangolin REQUIRED)
 find_package(realsense2)
 
@@ -128,6 +138,19 @@ include/Settings.h
         #vieo
         map/icp/Sim3Solver.cc
         common/mlog/log.cpp
+        common/camera_models/camera_pinhole.cpp
+        common/camera_models/camera_radtan.cpp
+        common/camera_models/camera_kb8.cpp
+        common/camera_models/camera.cpp
+        )
+
+list(APPEND vieo_optimizer_ba_SRCS
+        unit_test/test_optimizer_ba.cpp
+        common/mlog/log.cpp
+        common/camera_models/camera_pinhole.cpp
+        common/camera_models/camera_radtan.cpp
+        common/camera_models/camera_kb8.cpp
+        common/camera_models/camera.cpp
         )
 
 add_subdirectory(Thirdparty/g2o)
@@ -152,6 +175,11 @@ if(realsense2_FOUND)
     )
 endif()
 
+list(APPEND vieo_optimizer_ba_DEPS
+        ${PROJECT_NAME}
+        )
+add_executable(vieo_optimizer_ba ${vieo_optimizer_ba_SRCS})
+target_link_libraries(vieo_optimizer_ba ${vieo_optimizer_ba_DEPS})
 
 # Build examples
 
