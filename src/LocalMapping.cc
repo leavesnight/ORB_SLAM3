@@ -148,8 +148,7 @@ void LocalMapping::Run()
 
                         bool bLarge = ((mpTracker->GetMatchesInliers()>75)&&mbMonocular)||((mpTracker->GetMatchesInliers()>100)&&!mbMonocular);
                         const bool bRecInit = false; //!mpCurrentKeyFrame->GetMap()->GetIniertialBA2()
-                        Optimizer::LocalInertialBA(mpCurrentKeyFrame, &mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA, bLarge, bRecInit,
-                                                   vdLBA_part);
+                        Optimizer::LocalInertialBA(mpCurrentKeyFrame, &mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA, bLarge, bRecInit);
                         b_doneLBA = true;
                     }
                     else
@@ -176,7 +175,6 @@ void LocalMapping::Run()
                     vnLBA_KFopt.push_back(num_OptKF_BA);
                     vnLBA_KFfixed.push_back(num_FixedKF_BA);
                     vnLBA_MPs.push_back(num_MPs_BA);
-                    cout << "cur lba ms=" << timeLBA_ms << endl;
                 }
 
 #endif

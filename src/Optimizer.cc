@@ -2398,13 +2398,8 @@ int Optimizer::OptimizeSim3(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint *> &
     return nIn;
 }
 
-void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int& num_fixedKF, int& num_OptKF, int& num_MPs, int& num_edges, bool bLarge, bool bRecInit,
-                                vector<double> *pvdlba_par)
+void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int& num_fixedKF, int& num_OptKF, int& num_MPs, int& num_edges, bool bLarge, bool bRecInit)
 {
-#define REGISTER_TIMES
-#ifdef REGISTER_TIMES
-  std::chrono::steady_clock::time_point time_start = std::chrono::steady_clock::now();
-#endif
     Map* pCurrentMap = pKF->GetMap();
 
     int maxOpt=10;
@@ -2742,17 +2737,8 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
     {
         mVisEdges[(*lit)->mnId] = 0;
     }
-#ifdef REGISTER_TIMES
-  std::chrono::steady_clock::time_point time_end1 = std::chrono::steady_clock::now();
-
-  double timelba_part = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_end1 - time_start).count();
-  if (pvdlba_par) pvdlba_par[0].push_back(timelba_part);
-#endif
-
 
     float thresh_depth_close = 10;
-    cout << "check lmpts sz=" << lLocalMapPoints.size() << ",kfs sz=" << vpOptimizableKFs.size()<<", fix kfs sz="
-        << lFixedKeyFrames.size() << ",opt_it="<< opt_it << endl;
     for(list<MapPoint*>::iterator lit=lLocalMapPoints.begin(), lend=lLocalMapPoints.end(); lit!=lend; lit++)
     {
         MapPoint* pMP = *lit;
@@ -2879,7 +2865,6 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
             }
         }
     }
-cout << "  factor_visual num" << vpEdgesMono.size() << endl;
 
     //cout << "Total map points: " << lLocalMapPoints.size() << endl;
     for(map<int,int>::iterator mit=mVisEdges.begin(), mend=mVisEdges.end(); mit!=mend; mit++)
@@ -2891,19 +2876,13 @@ cout << "  factor_visual num" << vpEdgesMono.size() << endl;
     if (*pbStopFlag) {  // if mbAbortBA
       return;
     }
-#ifdef REGISTER_TIMES
-  std::chrono::steady_clock::time_point time_end2 = std::chrono::steady_clock::now();
-
-  timelba_part = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_end2 - time_end1).count();
-  if (pvdlba_par) pvdlba_par[1].push_back(timelba_part);
-#endif
 
     optimizer.initializeOptimization();
     optimizer.computeActiveErrors();
     float err = optimizer.activeRobustChi2();
     if(pbStopFlag)
         optimizer.setForceStopFlag(pbStopFlag);
-    /*int optit[2] = {5, 10};
+    int optit[2] = {5, 10};
   bool bDoMore = true;
     if (bLarge) optit[0] = bDoMore? 2 : 4;
     else optit[0] = bDoMore?4:10;
@@ -2949,14 +2928,8 @@ cout << "  factor_visual num" << vpEdgesMono.size() << endl;
     // Optimize again without the outliers
     optimizer.initializeOptimization(0);
     optimizer.optimize(optit[1]);  // 10 steps same as motion-only BA
-  }*/
-    optimizer.optimize(opt_it); // Originally to 2
-#ifdef REGISTER_TIMES
-  std::chrono::steady_clock::time_point time_end3 = std::chrono::steady_clock::now();
+  }
 
-  timelba_part = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_end3 - time_end2).count();
-  if (pvdlba_par) pvdlba_par[2].push_back(timelba_part);
-#endif
     float err_end = optimizer.activeRobustChi2();
   // TODO: Some convergence problems have been detected here
   if((2*err < err_end || isnan(err) || isnan(err_end)) && !bLarge) //bGN)
@@ -3002,12 +2975,6 @@ cout << "  factor_visual num" << vpEdgesMono.size() << endl;
             vToErase.push_back(make_pair(pKFi,pMP));
         }
     }
-#ifdef REGISTER_TIMES
-  std::chrono::steady_clock::time_point time_end4 = std::chrono::steady_clock::now();
-
-  timelba_part = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_end4 - time_end3).count();
-  if (pvdlba_par) pvdlba_par[3].push_back(timelba_part);
-#endif
 
     // Get Map Mutex and erase outliers
     unique_lock<mutex> lock(pMap->mMutexMapUpdate);
@@ -3073,12 +3040,6 @@ cout << "  factor_visual num" << vpEdgesMono.size() << endl;
     }
 
     pMap->IncreaseChangeIndex();
-#ifdef REGISTER_TIMES
-  std::chrono::steady_clock::time_point time_end5 = std::chrono::steady_clock::now();
-
-  timelba_part = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_end5 - time_end4).count();
-  if (pvdlba_par) pvdlba_par[4].push_back(timelba_part);
-#endif
 }
 
 Eigen::MatrixXd Optimizer::Marginalize(const Eigen::MatrixXd &H, const int &start, const int &end)

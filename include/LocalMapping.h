@@ -118,7 +118,6 @@ public:
     vector<double> vdLBA_ms;
     vector<double> vdKFCulling_ms;
     vector<double> vdLMTotal_ms;
-    vector<double> vdLBA_part[5];
 
 
     vector<double> vdLBASync_ms;

@@ -385,14 +385,6 @@ void Tracking::PrintTimeStats()
     deviation = calcDeviation(mpLocalMapper->vdLBA_ms, average);
     std::cout << "LBA: " << average << "$\\pm$" << deviation << std::endl;
     f << "LBA: " << average << "$\\pm$" << deviation << std::endl;
-    for (int i = 0; i < sizeof(mpLocalMapper->vdLBA_part)/sizeof(mpLocalMapper->vdLBA_part[0]); ++i) {
-      average = calcAverage(mpLocalMapper->vdLBA_part[i]);
-      deviation = calcDeviation(mpLocalMapper->vdLBA_part[i], average);
-      std::cout << "LBA[" << i << "]: " << average << "$\\pm$" << deviation
-                << std::endl;
-      f << "LBA[" << i << "]: " << average << "$\\pm$" << deviation
-        << std::endl;
-    }
 
     average = calcAverage(mpLocalMapper->vdKFCulling_ms);
     deviation = calcDeviation(mpLocalMapper->vdKFCulling_ms, average);
