@@ -143,6 +143,8 @@ void MapPoint::AddObservation(KeyFrame* pKF, int idx)
 {
     unique_lock<mutex> lock(mMutexFeatures);
     tuple<int,int> indexes;
+  // for EraseObs in different threads may cause some thread addobs happens on bad mp
+  if (mbBad) return;
 
     if(mObservations.count(pKF)){
         indexes = mObservations[pKF];
@@ -152,9 +154,11 @@ void MapPoint::AddObservation(KeyFrame* pKF, int idx)
     }
 
     if(pKF -> NLeft != -1 && idx >= pKF -> NLeft){
+      //if (get<1>(indexes) != -1) return;
         get<1>(indexes) = idx;
     }
     else{
+      //if (get<0>(indexes) != -1) return;
         get<0>(indexes) = idx;
     }
 
@@ -188,12 +192,14 @@ void MapPoint::EraseObservation(KeyFrame* pKF)
 
             mObservations.erase(pKF);
 
-            if(mpRefKF==pKF)
-                mpRefKF=mObservations.begin()->first;
-
             // If only 2 observations or less, discard point
-            if(nObs<=2)
+            if(nObs<=2 || mObservations.empty())
                 bBad=true;
+            else if (mpRefKF == pKF) {
+              // assert(!mObservations.empty());
+              // !empty()/nObs>0 avoids for Segmentation Fault? revised by zzh, notice we don't use the information of bad MPs
+              mpRefKF = mObservations.begin()->first;
+            }
         }
     }
 
