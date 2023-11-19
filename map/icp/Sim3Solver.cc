@@ -90,7 +90,6 @@ Sim3Solver::Sim3Solver(const vector<KeyFrame *> &vpkf12,
                        : Tc2w;
       auto indicesKF2_in = pMP2->GetIndexInKeyFrame(pkf2_tmp);
       vector<int> indicesKF2 = {get<0>(indicesKF2_in), get<1>(indicesKF2_in)};
-      int cam2i = 0;
       for (auto indexKF2 : indicesKF2) {
         // it's for safe
         if (indexKF2 < 0)
@@ -101,7 +100,7 @@ Sim3Solver::Sim3Solver(const vector<KeyFrame *> &vpkf12,
             //! pkf1->mvKeys[indexKF1];
             pkf1->NLeft == -1        ? pkf1->mvKeysUn[indexKF1]
             : indexKF1 < pkf1->NLeft ? pkf1->mvKeys[indexKF1]
-                                     : pkf1->mvKeys[indexKF1 - pkf1->NLeft];
+                                     : pkf1->mvKeysRight[indexKF1 - pkf1->NLeft];
         int cam1i = 0;
         if (pkf1->NLeft == -1 || indexKF1 < pkf1->NLeft)
           cam1i = 0;
@@ -113,7 +112,12 @@ Sim3Solver::Sim3Solver(const vector<KeyFrame *> &vpkf12,
             pkf2_tmp->NLeft == -1 ? pkf2_tmp->mvKeysUn[indexKF2]
             : indexKF2 < pkf2_tmp->NLeft
                 ? pkf2_tmp->mvKeys[indexKF2]
-                : pkf2_tmp->mvKeys[indexKF2 - pkf2_tmp->NLeft];
+                : pkf2_tmp->mvKeysRight[indexKF2 - pkf2_tmp->NLeft];
+        int cam2i = 0;
+        if (pkf2_tmp->NLeft == -1 || indexKF2 < pkf2_tmp->NLeft)
+          cam2i = 0;
+        else
+          cam2i = 1;
 
         const float sigmaSquare1 = pkf1->mvLevelSigma2[kp1.octave];
         // pkf1->scalepyrinfo_.vlevelsigma2_[kp1.octave];
@@ -142,7 +146,6 @@ Sim3Solver::Sim3Solver(const vector<KeyFrame *> &vpkf12,
         mapidx2cami_[1].push_back(usedistort_[ikf2] ? offset_cam0[ikf2] + cam2i
                                                     : offset_cam0[ikf2]);
         idx++;
-        ++cam2i;
       }
     }
   }
