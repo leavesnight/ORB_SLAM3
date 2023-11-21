@@ -83,7 +83,6 @@ src/MapDrawer.cc
 src/Optimizer.cc
 src/Frame.cc
 src/KeyFrameDatabase.cc
-#src/Sim3Solver.cc
 src/Viewer.cc
 src/ImuTypes.cc
 src/G2oTypes.cc
@@ -111,7 +110,6 @@ include/MapDrawer.h
 include/Optimizer.h
 include/Frame.h
 include/KeyFrameDatabase.h
-include/Sim3Solver.h
 include/Viewer.h
 include/ImuTypes.h
 include/G2oTypes.h
@@ -128,6 +126,7 @@ include/Settings.h
         #vieo
         map/icp/Sim3Solver.cc
         common/mlog/log.cpp
+        common/mlog/timer.cpp
         )
 
 add_subdirectory(Thirdparty/g2o)

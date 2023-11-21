@@ -1134,6 +1134,7 @@ void Frame::ComputeStereoFishEyeMatches() {
     //Speed it up by matching keypoints in the lapping area
     vector<cv::KeyPoint> stereoLeft(mvKeys.begin() + monoLeft, mvKeys.end());
     vector<cv::KeyPoint> stereoRight(mvKeysRight.begin() + monoRight, mvKeysRight.end());
+//    cout << "ln=" << stereoLeft.size() << "N=" << stereoLeft.size() + stereoRight.size() << endl;
 
     cv::Mat stereoDescLeft = mDescriptors.rowRange(monoLeft, mDescriptors.rows);
     cv::Mat stereoDescRight = mDescriptorsRight.rowRange(monoRight, mDescriptorsRight.rows);
@@ -1179,6 +1180,7 @@ void Frame::ComputeStereoFishEyeMatches() {
             }
         }
     }
+//  cout << "matches=" << nMatches << endl;
 }
 
 bool Frame::isInFrustumChecks(MapPoint *pMP, float viewingCosLimit, bool bRight) {

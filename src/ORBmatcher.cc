@@ -1167,7 +1167,8 @@ namespace ORB_SLAM3
 
                         const int dist = DescriptorDistance(d1,d2);
 
-                        if(dist>TH_LOW || dist>bestDist)
+//                        if(dist>TH_LOW || dist>bestDist)
+                        if (dist > bestDist)
                             continue;
 
                         const cv::KeyPoint &kp2 = (pKF2 -> NLeft == -1) ? pKF2->mvKeysUn[idx2]
@@ -1176,7 +1177,7 @@ namespace ORB_SLAM3
                         const bool bRight2 = (pKF2 -> NLeft == -1 || idx2 < pKF2 -> NLeft) ? false
                                                                                            : true;
 
-                        if(!bStereo1 && !bStereo2 && !pKF1->mpCamera2)
+                        if(!bStereo1 && !bStereo2 )//&& !pKF1->mpCamera2)
                         {
                             const float distex = ep(0)-kp2.pt.x;
                             const float distey = ep(1)-kp2.pt.y;
@@ -1465,22 +1466,20 @@ namespace ORB_SLAM3
             // If there is already a MapPoint replace otherwise add new measurement
             if(bestDist<=TH_LOW)
             {
-                MapPoint* pMPinKF = pKF->GetMapPoint(bestIdx);
-                if(pMPinKF)
-                {
-                    if(!pMPinKF->isBad())
-                    {
-                        if(pMPinKF->Observations()>pMP->Observations())
-                            pMP->Replace(pMPinKF);
-                        else
-                            pMPinKF->Replace(pMP);
-                    }
+              if (1 || (pMP && !pMP->isBad())) {
+                MapPoint *pMPinKF = pKF->GetMapPoint(bestIdx);
+                if (pMPinKF) {
+                  if (!pMPinKF->isBad()) {
+                    if (pMPinKF->Observations() > pMP->Observations())
+                      pMP->Replace(pMPinKF);
+                    else
+                      pMPinKF->Replace(pMP);
+                  }
+                } else {
+                  pMP->AddObservation(pKF, bestIdx);
+                  pKF->AddMapPoint(pMP, bestIdx);
                 }
-                else
-                {
-                    pMP->AddObservation(pKF,bestIdx);
-                    pKF->AddMapPoint(pMP,bestIdx);
-                }
+              }
                 nFused++;
             }
             else

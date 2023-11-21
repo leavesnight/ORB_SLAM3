@@ -324,20 +324,21 @@ bool LoopClosing::CheckNewKeyFrames()
 
 bool LoopClosing::NewDetectCommonRegions()
 {
-    // To deactivate placerecognition. No loopclosing nor merging will be performed
-    if(!mbActiveLC)
-        return false;
-
     {
         unique_lock<mutex> lock(mMutexLoopQueue);
         mpCurrentKF = mlpLoopKeyFrameQueue.front();
         mlpLoopKeyFrameQueue.pop_front();
-        // Avoid that a keyframe can be erased while it is being process by this thread
-        mpCurrentKF->SetNotErase();
-        mpCurrentKF->mbCurrentPlaceRecognition = true;
+        if (mbActiveLC) {
+          // Avoid that a keyframe can be erased while it is being process by this thread
+          mpCurrentKF->SetNotErase();
+          mpCurrentKF->mbCurrentPlaceRecognition = true;
+        }
 
         mpLastMap = mpCurrentKF->GetMap();
     }
+  // To deactivate placerecognition. No loopclosing nor merging will be performed
+  if(!mbActiveLC)
+    return false;
 
     if(mpLastMap->IsInertial() && !mpLastMap->GetIniertialBA2())
     {
