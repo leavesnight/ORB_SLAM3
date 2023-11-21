@@ -13,8 +13,6 @@ Camera1.fy: 190.9733070521226
 Camera1.cx: 254.93170605935475
 Camera1.cy: 256.8974428996504
 
-loopClosing: 0
-
 # Kannala-Brandt distortion parameters
 Camera1.k1: 0.0034823894022493434
 Camera1.k2: 0.0007150348452162257

@@ -273,7 +273,6 @@ public:
     bool isBad();
 
     // Compute Scene Depth (q=2 median). Used in monocular.
-  float hist_med_depth_ = 5.f;
     float ComputeSceneMedianDepth(const int q);
 
     static bool weightComp( int a, int b){

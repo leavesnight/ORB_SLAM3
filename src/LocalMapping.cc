@@ -23,7 +23,6 @@
 #include "Optimizer.h"
 #include "Converter.h"
 #include "GeometricTools.h"
-#include "common/mlog/timer.h"
 
 #include<mutex>
 #include<chrono>
@@ -71,12 +70,10 @@ void LocalMapping::Run()
         // Tracking will see that Local Mapping is busy
         SetAcceptKeyFrames(false);
 
-      assert(!mbBadImu);
         // Check if there are keyframes in the queue
         if(CheckNewKeyFrames() && !mbBadImu)
         {
 #ifdef REGISTER_TIMES
-          VIEO_SLAM::mlog::Timer timer_tmp;
             double timeLBA_ms = 0;
             double timeKFCulling_ms = 0;
 
@@ -89,7 +86,6 @@ void LocalMapping::Run()
 
             double timeProcessKF = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndProcessKF - time_StartProcessKF).count();
             vdKFInsert_ms.push_back(timeProcessKF);
-          timer_tmp.GetDTfromLast(100, "orb3_lba_thread_debug.txt", "processnewkf=");
 #endif
 
             // Check recent MapPoints
@@ -99,12 +95,10 @@ void LocalMapping::Run()
 
             double timeMPCulling = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndMPCulling - time_EndProcessKF).count();
             vdMPCulling_ms.push_back(timeMPCulling);
-          timer_tmp.GetDTfromLast(101, "orb3_lba_thread_debug.txt", "mpculling=");
 #endif
 
             // Triangulate new MapPoints
             CreateNewMapPoints();
-          timer_tmp.GetDTfromLast(102, "orb3_lba_thread_debug.txt", "createnewmp=");
 
             mbAbortBA = false;
 
@@ -119,7 +113,6 @@ void LocalMapping::Run()
 
             double timeMPCreation = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndMPCreation - time_EndMPCulling).count();
             vdMPCreation_ms.push_back(timeMPCreation);
-          timer_tmp.GetDTfromLast(103, "orb3_lba_thread_debug.txt", "sin=");
 #endif
 
             bool b_doneLBA = false;
@@ -155,7 +148,6 @@ void LocalMapping::Run()
 
                         bool bLarge = ((mpTracker->GetMatchesInliers()>75)&&mbMonocular)||((mpTracker->GetMatchesInliers()>100)&&!mbMonocular);
                         const bool bRecInit = false; //!mpCurrentKeyFrame->GetMap()->GetIniertialBA2()
-//                        if (!mpCurrentKeyFrame->GetMap()->GetIniertialBA2())
                         Optimizer::LocalInertialBA(mpCurrentKeyFrame, &mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA, bLarge, bRecInit);
                         b_doneLBA = true;
                     }
@@ -165,7 +157,6 @@ void LocalMapping::Run()
                         b_doneLBA = true;
                     }
 
-                  timer_tmp.GetDTfromLast(104, "orb3_lba_thread_debug.txt", "lba cost=");
                 }
 #ifdef REGISTER_TIMES
                 std::chrono::steady_clock::time_point time_EndLBA = std::chrono::steady_clock::now();
@@ -265,7 +256,6 @@ void LocalMapping::Run()
 
             double timeLocalMap = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndLocalMap - time_StartProcessKF).count();
             vdLMTotal_ms.push_back(timeLocalMap);
-          timer_tmp.GetDTfromInit(105, "orb3_lba_thread_debug.txt", "localmap cost=");
 #endif
         }
         else if(Stop() && !mbBadImu)
@@ -473,7 +463,7 @@ void LocalMapping::CreateNewMapPoints()
 
         // Search matches that fullfil epipolar constraint
         vector<pair<size_t,size_t> > vMatchedIndices;
-        bool bCoarse = false;//mbInertial && mpTracker->mState==Tracking::RECENTLY_LOST && mpCurrentKeyFrame->GetMap()->GetIniertialBA2();
+        bool bCoarse = mbInertial && mpTracker->mState==Tracking::RECENTLY_LOST && mpCurrentKeyFrame->GetMap()->GetIniertialBA2();
 
         matcher.SearchForTriangulation(mpCurrentKeyFrame,pKF2,vMatchedIndices,false,bCoarse);
 
@@ -592,7 +582,7 @@ void LocalMapping::CreateNewMapPoints()
             bool goodProj = false;
             bool bPointStereo = false;
             if(cosParallaxRays<cosParallaxStereo && cosParallaxRays>0 && (bStereo1 || bStereo2 ||
-                                                                          (cosParallaxRays<0.9998 && mbInertial) || (cosParallaxRays<0.9998 && !mbInertial)))
+                                                                          (cosParallaxRays<0.9996 && mbInertial) || (cosParallaxRays<0.9998 && !mbInertial)))
             {
                 goodProj = GeometricTools::Triangulate(xn1, xn2, eigTcw1, eigTcw2, x3D);
                 if(!goodProj)
@@ -684,11 +674,9 @@ void LocalMapping::CreateNewMapPoints()
             }
 
             //Check scale consistency
-            Ow1 = mpCurrentKeyFrame->GetCameraCenter();
             Eigen::Vector3f normal1 = x3D - Ow1;
             float dist1 = normal1.norm();
 
-            Ow2 = pKF2->GetCameraCenter();
             Eigen::Vector3f normal2 = x3D - Ow2;
             float dist2 = normal2.norm();
 
@@ -699,7 +687,7 @@ void LocalMapping::CreateNewMapPoints()
                 continue;
 
             const float ratioDist = dist2/dist1;
-            const float ratioOctave = pKF2->mvScaleFactors[kp2.octave]/mpCurrentKeyFrame->mvScaleFactors[kp1.octave];
+            const float ratioOctave = mpCurrentKeyFrame->mvScaleFactors[kp1.octave]/pKF2->mvScaleFactors[kp2.octave];
 
             if(ratioDist*ratioFactor<ratioOctave || ratioDist>ratioOctave*ratioFactor)
                 continue;
@@ -755,8 +743,8 @@ void LocalMapping::SearchInNeighbors()
             vpTargetKFs.push_back(pKFi2);
             pKFi2->mnFuseTargetForKF=mpCurrentKeyFrame->mnId;
         }
-        if (mbAbortBA) return;
-//            break;
+        if (mbAbortBA)
+            break;
     }
 
     // Extend to temporal neighbors
@@ -779,12 +767,12 @@ void LocalMapping::SearchInNeighbors()
     // Search matches by projection from current KF in target KFs
     ORBmatcher matcher;
     vector<MapPoint*> vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
-    int num_fused = 0;
+    int num_fused;
     for(vector<KeyFrame*>::iterator vit=vpTargetKFs.begin(), vend=vpTargetKFs.end(); vit!=vend; vit++)
     {
         KeyFrame* pKFi = *vit;
 
-        num_fused += matcher.Fuse(pKFi,vpMapPointMatches);
+        num_fused = matcher.Fuse(pKFi,vpMapPointMatches);
         if(pKFi->NLeft != -1) {
           num_fused +=matcher.Fuse(pKFi,vpMapPointMatches, 3.0, true);
         }

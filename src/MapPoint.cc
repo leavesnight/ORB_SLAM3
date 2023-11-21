@@ -262,7 +262,6 @@ void MapPoint::Replace(MapPoint* pMP)
     {
         unique_lock<mutex> lock1(mMutexFeatures);
         unique_lock<mutex> lock2(mMutexPos);
-        if (pMP->isBad()) return;
         obs=mObservations;
         mObservations.clear();
         mbBad=true;
@@ -309,9 +308,9 @@ void MapPoint::Replace(MapPoint* pMP)
 
 bool MapPoint::isBad()
 {
-    unique_lock<mutex> lock1(mMutexFeatures);//,std::defer_lock);
-    unique_lock<mutex> lock2(mMutexPos);//,std::defer_lock);
-//    lock(lock1, lock2);
+    unique_lock<mutex> lock1(mMutexFeatures,std::defer_lock);
+    unique_lock<mutex> lock2(mMutexPos,std::defer_lock);
+    lock(lock1, lock2);
 
     return mbBad;
 }

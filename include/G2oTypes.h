@@ -765,17 +765,12 @@ public:
                        const Eigen::Vector3d &bg_, const Eigen::Vector3d &ba_, const Matrix15d &H_):
                        Rwb(Rwb_), twb(twb_), vwb(vwb_), bg(bg_), ba(ba_), H(H_)
     {
-//        H = (H+H)/2;
+        H = (H+H)/2;
         Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double,15,15> > es(H);
         Eigen::Matrix<double,15,1> eigs = es.eigenvalues();
-        double eig_max = eigs[14];
-        for(int i=0;i<15;i++) {
-          if (eigs[i] < eig_max * 1e-14) {
-            eigs[i] = eig_max * 1e-14;
-          }
-//          if (eigs[i] < 1e-12)
-//            eigs[i] = 0;
-        }
+        for(int i=0;i<15;i++)
+            if(eigs[i]<1e-12)
+                eigs[i]=0;
         H = es.eigenvectors()*eigs.asDiagonal()*es.eigenvectors().transpose();
     }
 

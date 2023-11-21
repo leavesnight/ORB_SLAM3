@@ -2170,7 +2170,7 @@ void Tracking::Track()
             if (mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD)
             {
                 Verbose::PrintMess("Track lost for less than one second...", Verbose::VERBOSITY_NORMAL);
-                if(!pCurrentMap->isImuInitialized())// || !pCurrentMap->GetIniertialBA2())
+                if(!pCurrentMap->isImuInitialized() || !pCurrentMap->GetIniertialBA2())
                 {
                     cout << "IMU is not or recently initialized. Reseting active map..." << endl;
                     mpSystem->ResetActiveMap();
@@ -3070,7 +3070,7 @@ bool Tracking::TrackLocalMap()
                 else
                     mnMatchesInliers++;
             }
-            else if(mSensor==System::STEREO || mSensor == System::IMU_STEREO)
+            else if(mSensor==System::STEREO)  // || mSensor == System::IMU_STEREO)
                 mCurrentFrame.mvpMapPoints[i] = static_cast<MapPoint*>(NULL);
         }
     }
@@ -3213,8 +3213,8 @@ bool Tracking::NeedNewKeyFrame()
     //Condition 1c: tracking is weak
   Map* pCurrentMap = mpAtlas->GetCurrentMap();
   bool bimu_inited = !pCurrentMap ? false : pCurrentMap->isImuInitialized();
-    // const bool c1c = mSensor!=System::MONOCULAR && mSensor!=System::IMU_MONOCULAR && mSensor!=System::IMU_STEREO && mSensor!=System::IMU_RGBD && (mnMatchesInliers<nRefMatches*0.25 || bNeedToInsertClose) ;
-    const bool c1c = (mSensor!=System::MONOCULAR && mSensor!=System::IMU_MONOCULAR) && (mnMatchesInliers<nRefMatches*0.25 || (!bimu_inited && bNeedToInsertClose));
+    const bool c1c = mSensor!=System::MONOCULAR && mSensor!=System::IMU_MONOCULAR && mSensor!=System::IMU_STEREO && mSensor!=System::IMU_RGBD && (mnMatchesInliers<nRefMatches*0.25 || bNeedToInsertClose) ;
+    // const bool c1c = (mSensor!=System::MONOCULAR && mSensor!=System::IMU_MONOCULAR) && (mnMatchesInliers<nRefMatches*0.25 || (!bimu_inited && bNeedToInsertClose));
     // Condition 2: Few tracked points compared to reference keyframe. Lots of visual odometry compared to map matches.
     const bool c2 = (((mnMatchesInliers<nRefMatches*thRefRatio || bNeedToInsertClose)) && mnMatchesInliers>15);
 
@@ -3409,11 +3409,7 @@ void Tracking::CreateNewKeyFrame()
         }
     }
 
-//  if (mpAtlas->isImuInitialized() && mpAtlas->GetCurrentMap()->GetIniertialBA2())
-//  {
-//
-//  }
-//  else
+
     mpLocalMapper->InsertKeyFrame(pKF);
 
     mpLocalMapper->SetNotStop(false);
