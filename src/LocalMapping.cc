@@ -133,7 +133,7 @@ void LocalMapping::Run()
 
                         if(dist>0.05)
                             mTinit += mpCurrentKeyFrame->mTimeStamp - mpCurrentKeyFrame->mPrevKF->mTimeStamp;
-                        if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2())
+                        if(0 && !mpCurrentKeyFrame->GetMap()->GetIniertialBA2())
                         {
                             if((mTinit<10.f) && (dist<0.02))
                             {
@@ -223,7 +223,7 @@ void LocalMapping::Run()
                                 else
                                     InitializeIMU(0.f, 0.f, true);
 
-                                cout << "end VIBA 2" << endl;
+                                cout << "end VIBA 2, tm=" << mpCurrentKeyFrame->mTimeStamp << endl;
                             }
                         }
 
@@ -236,7 +236,7 @@ void LocalMapping::Run()
                                 (mTinit>65.0f && mTinit<65.5f)||
                                 (mTinit>75.0f && mTinit<75.5f))){
                             if (mbMonocular)
-                                ScaleRefinement();
+                              ScaleRefinement();
                         }
                     }
                 }
@@ -461,6 +461,7 @@ void LocalMapping::CreateNewMapPoints()
 
         // Search matches that fullfil epipolar constraint
         vector<pair<size_t,size_t> > vMatchedIndices;
+
         bool bCoarse = mbInertial && mpTracker->mState==Tracking::RECENTLY_LOST && mpCurrentKeyFrame->GetMap()->GetIniertialBA2();
 
         matcher.SearchForTriangulation(mpCurrentKeyFrame,pKF2,vMatchedIndices,false,bCoarse);
@@ -1277,6 +1278,7 @@ void LocalMapping::InitializeIMU(float priorG, float priorA, bool bFIBA)
         return;
     }
 
+    cout << "scale="<< mScale << endl;
     // Before this line we are not changing the map
     {
         unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
@@ -1469,6 +1471,7 @@ void LocalMapping::ScaleRefinement()
         bInitializing=false;
         return;
     }
+  cout << "scale refined=" <<mScale << ",tm=" << mpCurrentKeyFrame->mTimeStamp << endl;
     
     Sophus::SO3d so3wg(mRwg);
     // Before this line we are not changing the map
