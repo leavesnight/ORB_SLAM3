@@ -909,13 +909,13 @@ void LocalMapping::KeyFrameCulling()
     mpCurrentKeyFrame->UpdateBestCovisibles();
     vector<KeyFrame*> vpLocalKeyFrames = mpCurrentKeyFrame->GetVectorCovisibleKeyFrames();
 
-    float redundant_th;
-    if(!mbInertial)
-        redundant_th = 0.9;
-    else if (mbMonocular)
-        redundant_th = 0.9;
-    else
-        redundant_th = 0.5;
+    float redundant_th = 0.9;
+    //    if(!mbInertial)
+    //        redundant_th = 0.9;
+    //    else if (mbMonocular)
+    //        redundant_th = 0.9;
+    //    else
+    //        redundant_th = 0.5;
 
     const bool bInitImu = mpAtlas->isImuInitialized();
     int count=0;
@@ -956,19 +956,21 @@ void LocalMapping::KeyFrameCulling()
             {
                 if(!pMP->isBad())
                 {
-                    if(!mbMonocular)
-                    {
-                        if(pKF->mvDepth[i]>pKF->mThDepth || pKF->mvDepth[i]<0)
-                            continue;
-                    }
+                if (!mbMonocular) {
+                  auto di = i < pKF->NLeft ? pKF->mvDepth[i]
+                            : pKF->mvRightToLeftMatch[i - pKF->NLeft] != -1
+                                ? pKF->mvDepth[pKF->mvRightToLeftMatch[i - pKF->NLeft]]
+                                : -1;
+                  if (di > pKF->mThDepth || di < 0) continue;
+                }
 
-                    nMPs++;
+                nMPs++;
                     if(pMP->Observations()>thObs)
                     {
-                        const int &scaleLevel = (pKF -> NLeft == -1) ? pKF->mvKeysUn[i].octave
-                                                                     : (i < pKF -> NLeft) ? pKF -> mvKeys[i].octave
-                                                                                          : pKF -> mvKeysRight[i].octave;
-                        const map<KeyFrame*, tuple<int,int>> observations = pMP->GetObservations();
+                  const int& scaleLevel = (pKF->NLeft == -1) ? pKF->mvKeysUn[i].octave
+                                          : (i < pKF->NLeft) ? pKF->mvKeys[i].octave
+                                                             : pKF->mvKeysRight[i - pKF->NLeft].octave;
+                  const map<KeyFrame*, tuple<int,int>> observations = pMP->GetObservations();
                         int nObs=0;
                         for(map<KeyFrame*, tuple<int,int>>::const_iterator mit=observations.begin(), mend=observations.end(); mit!=mend; mit++)
                         {

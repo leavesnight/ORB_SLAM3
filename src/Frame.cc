@@ -1137,7 +1137,8 @@ void Frame::ComputeStereoFishEyeMatches() {
     mvLeftToRightMatch = vector<int>(Nleft,-1);
     mvRightToLeftMatch = vector<int>(Nright,-1);
     mvDepth = vector<float>(Nleft,-1.0f);
-    mvuRight = vector<float>(Nleft,-1);
+    // use max to avoid out of memory problem
+    mvuRight = vector<float>(max(Nleft, Nright),-1);
     mvStereo3Dpoints = vector<Eigen::Vector3f>(Nleft);
     mnCloseMPs = 0;
 
