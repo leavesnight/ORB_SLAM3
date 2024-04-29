@@ -3327,15 +3327,23 @@ void Tracking::CreateNewKeyFrame()
             {
                 int i = vDepthIdx[j].second;
 
-                bool bCreateNew = false;
-
+                // bool bCreateNew = false;
+                // MapPoint* pMP = mCurrentFrame.mvpMapPoints[i];
+                // if(!pMP)
+                //     bCreateNew = true;
+                // else if(pMP->Observations()<1)
+                // {
+                //     bCreateNew = true;
+                //     mCurrentFrame.mvpMapPoints[i] = static_cast<MapPoint*>(NULL);
+                // }
+                bool bCreateNew = true;
                 MapPoint* pMP = mCurrentFrame.mvpMapPoints[i];
-                if(!pMP)
-                    bCreateNew = true;
-                else if(pMP->Observations()<1)
-                {
-                    bCreateNew = true;
-                    mCurrentFrame.mvpMapPoints[i] = static_cast<MapPoint*>(NULL);
+                // old strategy won't abandon all bad mps, only obs<1 bad mps will be substituted by stereo pt
+                if (pMP && !pMP->isBad()) {
+                  bCreateNew = false;
+                } else if (-1 != mCurrentFrame.Nleft && mCurrentFrame.mvLeftToRightMatch[i]>=0) {
+                  auto pmp_tmp = mCurrentFrame.mvpMapPoints[mCurrentFrame.mvLeftToRightMatch[i] + mCurrentFrame.Nleft];
+                  if (pmp_tmp && !pmp_tmp->isBad()) bCreateNew = false;
                 }
 
                 if(bCreateNew)

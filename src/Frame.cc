@@ -582,6 +582,9 @@ bool Frame::isInFrustum(MapPoint *pMP, float viewingCosLimit)
 
         pMP->mbTrackInView = isInFrustumChecks(pMP,viewingCosLimit);
         pMP->mbTrackInViewR = isInFrustumChecks(pMP,viewingCosLimit,true);
+        if (pMP->mbTrackInViewR) {
+          pMP->mTrackDepth = (pMP->mTrackDepth + pMP->mTrackDepthR) / 2.f;
+        }
 
         return pMP->mbTrackInView || pMP->mbTrackInViewR;
     }
