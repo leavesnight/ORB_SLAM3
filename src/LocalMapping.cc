@@ -146,8 +146,10 @@ void LocalMapping::Run()
                             }
                         }
 
-                        bool bLarge = ((mpTracker->GetMatchesInliers()>75)&&mbMonocular)||((mpTracker->GetMatchesInliers()>100)&&!mbMonocular);
-                        const bool bRecInit = false; //!mpCurrentKeyFrame->GetMap()->GetIniertialBA2()
+                        auto ninliers_fe = mpTracker->GetMatchesInliers();
+                        if (-1 != mpCurrentKeyFrame->NLeft) ninliers_fe /= 2;
+                        bool bLarge = ((ninliers_fe>75)&&mbMonocular)||((ninliers_fe>100)&&!mbMonocular);
+                        const bool bRecInit = !mpCurrentKeyFrame->GetMap()->GetIniertialBA2();//false; //
                         Optimizer::LocalInertialBA(mpCurrentKeyFrame, &mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA, bLarge, bRecInit);
                         b_doneLBA = true;
                     }

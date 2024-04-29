@@ -564,7 +564,7 @@ void Optimizer::FullInertialBA(Map *pMap, int its, const bool bFixLocal, const l
                     optimizer.addEdge(ear);
                 }
                 bool bfixedkf = dynamic_cast<g2o::OptimizableGraph::Vertex*>(VG1)->fixed();
-                if (bfixedkf) {
+                if (0 && bfixedkf) {
                     ei->setInformation(ei->information()*1e-2);
                     if (egr) {
                       egr->setInformation(egr->information() * 1e-2);
@@ -2674,15 +2674,15 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
             Eigen::Matrix3d InfoA = pKFi->mpImuPreintegrated->C.block<3,3>(12,12).cast<double>().inverse();
             vear[i]->setInformation(InfoA);
 
-          if (i==N-1) {
+          if (i==N-1 || bRecInit) {
             if (vegr[i]) {
-              vegr[i]->setInformation(vegr[i]->information() * 1e-2);
+              // vegr[i]->setInformation(vegr[i]->information() * 1e-2);
               g2o::RobustKernelHuber* rki = new g2o::RobustKernelHuber;
               vegr[i]->setRobustKernel(rki);
               rki->setDelta(sqrt(7.815));
             }
             if (vear[i]) {
-              vear[i]->setInformation(vear[i]->information() * 1e-2);
+              // vear[i]->setInformation(vear[i]->information() * 1e-2);
               g2o::RobustKernelHuber* rki = new g2o::RobustKernelHuber;
               vear[i]->setRobustKernel(rki);
               rki->setDelta(sqrt(7.815));
@@ -3086,9 +3086,9 @@ Eigen::MatrixXd Optimizer::Marginalize(const Eigen::MatrixXd &H, const int &star
     Eigen::JacobiSVD<Eigen::MatrixXd>::SingularValuesType singularValues_inv=svd.singularValues();
     for (int i=0; i<b; ++i)
     {
-        if (singularValues_inv(i)>1e-6)
+//        if (singularValues_inv(i)>1e-6)
             singularValues_inv(i)=1.0/singularValues_inv(i);
-        else singularValues_inv(i)=0;
+//        else singularValues_inv(i)=0;
     }
     Eigen::MatrixXd invHb = svd.matrixV()*singularValues_inv.asDiagonal()*svd.matrixU().transpose();
     Hn.block(0,0,a+c,a+c) = Hn.block(0,0,a+c,a+c) - Hn.block(0,a+c,a+c,b)*invHb*Hn.block(a+c,0,b,a+c);
@@ -4779,7 +4779,7 @@ int Optimizer::PoseInertialOptimizationLastKeyFrame(Frame *pFrame, bool bRecInit
     optimizer.addEdge(ear);
 
   bool bfixedkf = dynamic_cast<g2o::OptimizableGraph::Vertex*>(VGk)->fixed();
-  if (bfixedkf) {
+  if (0 && bfixedkf) {
     ei->setInformation(ei->information()*1e-2);
     g2o::RobustKernelHuber* rki = new g2o::RobustKernelHuber;
     ei->setRobustKernel(rki);

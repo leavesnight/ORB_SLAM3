@@ -3474,9 +3474,9 @@ void Tracking::SearchLocalPoints()
             if(mpAtlas->GetCurrentMap()->GetIniertialBA2())
                 th=2;
             else
-                th=6;
+                th=2;//6;
         }
-        else if(!mpAtlas->isImuInitialized() && (mSensor==System::IMU_MONOCULAR || mSensor==System::IMU_STEREO || mSensor == System::IMU_RGBD))
+        else if(0&&!mpAtlas->isImuInitialized() && (mSensor==System::IMU_MONOCULAR || mSensor==System::IMU_STEREO || mSensor == System::IMU_RGBD))
         {
             th=10;
         }
