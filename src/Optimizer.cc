@@ -1194,7 +1194,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     g2o::BlockSolver_6_3 * solver_ptr = new g2o::BlockSolver_6_3(linearSolver);
 
     g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
-    if (0&&pMap->IsInertial())
+    if (pMap->IsInertial())
         solver->setUserLambdaInit(100.0);
 
     optimizer.setAlgorithm(solver);
