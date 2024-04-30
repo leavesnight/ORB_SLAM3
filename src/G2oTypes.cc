@@ -19,7 +19,6 @@
 #include "G2oTypes.h"
 #include "ImuTypes.h"
 #include "Converter.h"
-#include "common/camera_models/camera.h"
 namespace ORB_SLAM3
 {
 
@@ -69,48 +68,6 @@ ImuCamPose::ImuCamPose(KeyFrame *pKF):its(0)
     // For posegraph 4DoF
     Rwb0 = Rwb;
     DR.setIdentity();
-}
-
-ImuCamInfo::ImuCamInfo(KeyFrame *pKF)
-{
-  // Load IMU pose
-  pwb_ = pKF->GetImuPosition().cast<double>();
-  Rwb_ = pKF->GetImuRotation().cast<double>();
-
-  // Load camera poses
-  int num_cams;
-  if(pKF->mpCamera2)
-    num_cams=2;
-  else
-    num_cams=1;
-  CV_Assert(num_cams == 1);
-
-  vtcw_.resize(num_cams);
-  vRcw_.resize(num_cams);
-  vtcb_.resize(num_cams);
-  vRcb_.resize(num_cams);
-  vintr_.resize(num_cams);
-
-  // Left camera
-  vtcw_[0] = pKF->GetTranslation().cast<double>();
-  vRcw_[0] = pKF->GetRotation().cast<double>();
-  vtcb_[0] = pKF->mImuCalib.mTcb.translation().cast<double>();
-  vRcb_[0] = pKF->mImuCalib.mTcb.rotationMatrix().cast<double>();
-  vintr_[0] = VIEO_SLAM::camm::CreateCameraInstance(VIEO_SLAM::camm::Camera::kPinhole, 0, 0, 0,
-                                                    pKF->mpCamera->getParams());
-  bf_ = pKF->mbf;
-
-  if(num_cams>1)
-  {
-    Eigen::Matrix4d Trl = pKF->GetRelativePoseTrl().matrix().cast<double>();
-    vRcw_[1] = Trl.block<3,3>(0,0) * vRcw_[0];
-    vtcw_[1] = Trl.block<3,3>(0,0) * vtcw_[0] + Trl.block<3,1>(0,3);
-    vtcb_[1] = Trl.block<3,3>(0,0) * vtcb_[0] + Trl.block<3,1>(0,3);
-    vRcb_[1] = Trl.block<3,3>(0,0) * vRcb_[0];
-    vintr_[1] = VIEO_SLAM::camm::CreateCameraInstance(VIEO_SLAM::camm::Camera::kPinhole, 0, 0, 0,
-                                                      pKF->mpCamera2->getParams());
-  }
-  sz_nswb_ = vintr_.size();
 }
 
 ImuCamPose::ImuCamPose(Frame *pF):its(0)
@@ -346,7 +303,7 @@ bool VertexPose::read(std::istream& is)
     is >> bf;
     _estimate.SetParam(Rcw,tcw,Rbc,tbc,bf);
     updateCache();
-
+    
     return true;
 }
 
@@ -391,10 +348,6 @@ bool VertexPose::write(std::ostream& os) const
 
 void EdgeMono::linearizeOplus()
 {
-#ifdef TIMER_FLOW
-  ++num_dt_[1];
-  timer_[1].Start();
-#endif
     const VertexPose* VPose = static_cast<const VertexPose*>(_vertices[1]);
     const g2o::VertexSBAPointXYZ* VPoint = static_cast<const g2o::VertexSBAPointXYZ*>(_vertices[0]);
 
@@ -417,9 +370,6 @@ void EdgeMono::linearizeOplus()
             y ,  -x , 0.0, 0.0, 0.0, 1.0;
 
     _jacobianOplusXj = proj_jac * Rcb * SE3deriv; // TODO optimize this product
-#ifdef TIMER_FLOW
-  sum_dt_[1] += timer_[1].GetDTms(true);
-#endif
 }
 
 void EdgeMonoOnlyPose::linearizeOplus()
@@ -446,10 +396,6 @@ void EdgeMonoOnlyPose::linearizeOplus()
 
 void EdgeStereo::linearizeOplus()
 {
-#ifdef TIMER_FLOW
-  ++num_dt_[1];
-  timer_[1].Start();
-#endif
     const VertexPose* VPose = static_cast<const VertexPose*>(_vertices[1]);
     const g2o::VertexSBAPointXYZ* VPoint = static_cast<const g2o::VertexSBAPointXYZ*>(_vertices[0]);
 
@@ -478,144 +424,6 @@ void EdgeStereo::linearizeOplus()
             y ,  -x , 0.0, 0.0, 0.0, 1.0;
 
     _jacobianOplusXj = proj_jac * Rcb * SE3deriv;
-#ifdef TIMER_FLOW
-  sum_dt_[1] += timer_[1].GetDTms(true);
-#endif
-}
-void EdgeReprojectPRStereo::linearizeOplus() {
-#ifdef TIMER_FLOW
-  ++num_dt_[1];
-  timer_[1].Start();
-#endif
-  const VertexNavStatePR* VPose = static_cast<const VertexNavStatePR*>(_vertices[1]);
-  const g2o::VertexSBAPointXYZ* VPoint = static_cast<const g2o::VertexSBAPointXYZ*>(_vertices[0]);
-
-  const Eigen::Matrix3d& Rcw = VPose->estimate().vRcw_[cam_idx_];  // Rcw[cam_idx];
-  const Eigen::Vector3d& tcw = VPose->estimate().vtcw_[cam_idx_];  // estimate().tcw[cam_idx];
-  const Eigen::Vector3d Xc = Rcw * VPoint->estimate() + tcw;
-  const Eigen::Vector3d Xb =
-      VPose->estimate().vRcb_[cam_idx_].transpose() *
-      (Xc - VPose->estimate().vtcb_[cam_idx_]);  // VPose->estimate().Rbc[cam_idx]*Xc+VPose->estimate().tbc[cam_idx];
-  const Eigen::Matrix3d& Rcb = VPose->estimate().vRcb_[cam_idx_];  // VPose->estimate().Rcb[cam_idx];
-  const double bf = VPose->estimate().bf_;                         // VPose->estimate().bf;
-  const double inv_z2 = 1.0 / (Xc(2) * Xc(2));
-
-  Eigen::Matrix<double, 3, 3> proj_jac;
-  Eigen::Matrix<double, 2, 3> proj_jac23;
-  VPose->estimate().vintr_[cam_idx_]->Project(Xc, nullptr, &proj_jac23);
-  proj_jac.block<2, 3>(0, 0) = proj_jac23;  // VPose->estimate().pCamera[cam_idx]->projectJac(Xc);
-  proj_jac.block<1, 3>(2, 0) = proj_jac.block<1, 3>(0, 0);
-  proj_jac(2, 2) += bf * inv_z2;
-
-  _jacobianOplusXi = -proj_jac * Rcw;
-
-  Eigen::Matrix<double, 3, 6> SE3deriv;
-  double x = Xb(0);
-  double y = Xb(1);
-  double z = Xb(2);
-
-//  SE3deriv << 0.0, z,   -y, 1.0, 0.0, 0.0,
-//      -z , 0.0, x, 0.0, 1.0, 0.0,
-//      y ,  -x , 0.0, 0.0, 0.0, 1.0;
-  SE3deriv << 1.0, 0.0, 0.0, 0.0, z, -y, 0.0, 1.0, 0.0, -z, 0.0, x, 0.0, 0.0, 1.0, y, -x, 0.0;
-
-  _jacobianOplusXj = proj_jac * Rcb * SE3deriv;
-#ifdef TIMER_FLOW
-  sum_dt_[1] += timer_[1].GetDTms(true);
-#endif
-}
-void EdgeReprojectPR::linearizeOplus() {
-#ifdef TIMER_FLOW
-  ++num_dt_[1];
-  timer_[1].Start();
-#endif
-  const VertexNavStatePR* VPose = static_cast<const VertexNavStatePR*>(_vertices[1]);
-  const g2o::VertexSBAPointXYZ* VPoint = static_cast<const g2o::VertexSBAPointXYZ*>(_vertices[0]);
-
-  const Eigen::Matrix3d& Rcw = VPose->estimate().vRcw_[cam_idx_];  // Rcw[cam_idx];
-  const Eigen::Vector3d& tcw = VPose->estimate().vtcw_[cam_idx_];  // estimate().tcw[cam_idx];
-  const Eigen::Vector3d Xc = Rcw * VPoint->estimate() + tcw;
-  const Eigen::Vector3d Xb =
-      VPose->estimate().vRcb_[cam_idx_].transpose() *
-      (Xc - VPose->estimate().vtcb_[cam_idx_]);  // VPose->estimate().Rbc[cam_idx]*Xc+VPose->estimate().tbc[cam_idx];
-  const Eigen::Matrix3d& Rcb = VPose->estimate().vRcb_[cam_idx_];  // VPose->estimate().Rcb[cam_idx];
-
-  // const Eigen::Matrix<double,2,3> proj_jac = VPose->estimate().pCamera[cam_idx]->projectJac(Xc);
-  Eigen::Matrix<double, 2, 3> proj_jac;
-  VPose->estimate().vintr_[cam_idx_]->Project(Xc, nullptr, &proj_jac);
-  _jacobianOplusXi = -proj_jac * Rcw;
-
-  Eigen::Matrix<double, 3, 6> SE3deriv;
-  double x = Xb(0);
-  double y = Xb(1);
-  double z = Xb(2);
-
-  SE3deriv << 1.0, 0.0, 0.0, 0.0, z, -y, 0.0, 1.0, 0.0, -z, 0.0, x, 0.0, 0.0, 1.0, y, -x, 0.0;
-//  SE3deriv <<  0.0, z, -y,1.0, 0.0, 0.0,
-//               -z, 0.0, x,0.0, 1.0, 0.0,
-//               y, -x, 0.0,0.0, 0.0, 1.0;
-
-  _jacobianOplusXj = proj_jac * Rcb * SE3deriv;  // TODO optimize this product
-  /*
-  const auto* pXh = static_cast<const VertexSBAPointXYZ*>(_vertices[0]);
-  Vector3d Pw = pXh->estimate();
-  const auto* vns = static_cast<const VertexNavStatePR*>(_vertices[1]);
-  double scale = 1.;
-  Matrix3d Rcw;
-  Vector3d tcw;
-  assert(vns->pimucam_info_);
-  vns->pimucam_info_->GetTcw_wX(cam_idx_, Pw, scale, nullptr, Rcw, tcw);
-
-  Vector3d Pc = Rcw * Pw + tcw;  // Pc=Rcb*Rbw*(Pw-twb)+tcb
-  // Jacobian of camera projection, par((K*Pc)(0:1))/par(Pc)=J_e_Pc, error = obs - pi( Pc )
-  // J_e_P'=J_e_Pc=-[fx/z 0 -fx*x/z^2; 0 fy/z -fy*y/z^2], here Xc->Xc+dXc
-  Matrix<double, 2, 3> Jproj;
-  vns->pimucam_info_->cam_project(cam_idx_, Pc, (VectorDEd*)nullptr, &Jproj);
-
-  const auto& Rcb = vns->pimucam_info_->vRcb_[cam_idx_];  // vns->pimucam_info_->vTcb_[cam_idx_].rotationMatrix();
-  // Jacobian of error w.r.t dPwb = JdPwb=J_e_Pc*J_Pc_dPwb, notcie we use pwb->pwb+dpwb increment model in the
-  // corresponding Vertex, so here is the same, a bit dfferent from (21)
-#ifdef USE_P_PLUS_RDP
-  Matrix<double, 2, 3> JdPwb = Jproj * (-Rcb);  // J_Pc_dPwb = -Rcw*Rwb= -Rcb(p<-p+R*dp)
-#else
-  Matrix<double, 2, 3> JdPwb = Jproj * (-Rcw);  // J_Pc_dPwb = -Rcw(p<-p+dp)
-#endif
-
-  // Jacobian of error w.r.t dRwb
-  // J_Pc_dRwb=(Rcw*(Pw-twb))^Rcb, using right disturbance model/Rwb->Rwb*Exp(dphi) or Rbw->Exp(-dphi)*Rbw,
-  // see Manifold paper (20)
-  Matrix<double, 2, 3> JdRwb;
-  {
-    Vector3d Paux;
-    const NavStateBased& ns = vns->estimate();  // transform Xh to Xc through Tbw&&Tcb
-    Paux = ns.getRwb().transpose() * (Pw - ns.pwb_);
-    JdRwb = Jproj * Rcb * Sophus::SO3exd::hat(Paux);  // Jproj * (Sophus::SO3exd::hat(Paux) * Rcb);
-  }
-
-  // Jacobian of error w.r.t NavStatePR, order in 'update_': dP, dPhi
-  Matrix<double, 2, 6> JNavState = Matrix<double, 2, 6>::Zero();
-  JNavState.template block<2, 3>(0, 0) = JdPwb;       // J_error_dnotPR=0 so we'd better use PR&V instead of PVR/PVRB
-  JNavState.template block<2, 3>(0, 3) = JdRwb;  // only for 9(J_e_dV=0)/6
-  _jacobianOplusXj = JNavState;
-
-  // Jacobian of error(-pc) w.r.t dXh/dPh: J_e_dXh=JdXh=J_e_Pc*J_Pc_dPw*J_Pw_dPh=Jproj*Rcw*Rwh=-JdPwb*Rwh
-#ifdef USE_P_PLUS_RDP
-  _jacobianOplusXi = Jproj * (Rcw);  // JdPwb * Rwb.transpose();  // for (p<-p+R*dp)
-#else
-  _jacobianOplusXi = -JdPwb;  // Jproj*Rcb*Rwb.transpose()*Rwh; it's a fast form for (p<-p+dp);Rwh=I for NV==2
-#endif*/
-#ifdef TIMER_FLOW
-  sum_dt_[1] += timer_[1].GetDTms(true);
-#endif
-}
-Eigen::Vector3d ImuCamInfo::ProjectStereo(const Eigen::Vector3d &Xw, int cam_idx) const
-{
-  Eigen::Vector3d Pc = vRcw_[cam_idx] * Xw + vtcw_[cam_idx];
-  Eigen::Vector3d pc;
-  double invZ = 1/Pc(2);
-  pc.head(2) = vintr_[cam_idx]->Project(Pc);
-  pc(2) = pc(0) - bf_*invZ;
-  return pc;
 }
 
 void EdgeStereoOnlyPose::linearizeOplus()
@@ -705,10 +513,6 @@ EdgeInertial::EdgeInertial(IMU::Preintegrated *pInt):JRg(pInt->JRg.cast<double>(
 
 void EdgeInertial::computeError()
 {
-#ifdef TIMER_FLOW
-  ++num_dt_[0];
-  timer_[0].Start();
-#endif
     // TODO Maybe Reintegrate inertial measurments when difference between linearization point and current estimate is too big
     const VertexPose* VP1 = static_cast<const VertexPose*>(_vertices[0]);
     const VertexVelocity* VV1= static_cast<const VertexVelocity*>(_vertices[1]);
@@ -727,17 +531,10 @@ void EdgeInertial::computeError()
                                                                - VV1->estimate()*dt - g*dt*dt/2) - dP;
 
     _error << er, ev, ep;
-#ifdef TIMER_FLOW
-  sum_dt_[0] += timer_[0].GetDTms(true);
-#endif
 }
 
 void EdgeInertial::linearizeOplus()
 {
-#ifdef TIMER_FLOW
-  ++num_dt_[1];
-  timer_[1].Start();
-#endif
     const VertexPose* VP1 = static_cast<const VertexPose*>(_vertices[0]);
     const VertexVelocity* VV1= static_cast<const VertexVelocity*>(_vertices[1]);
     const VertexGyroBias* VG1= static_cast<const VertexGyroBias*>(_vertices[2]);
@@ -794,131 +591,6 @@ void EdgeInertial::linearizeOplus()
     // Jacobians wrt Velocity 2
     _jacobianOplus[5].setZero();
     _jacobianOplus[5].block<3,3>(3,0) = Rbw1; // OK
-#ifdef TIMER_FLOW
-  sum_dt_[1] += timer_[1].GetDTms(true);
-#endif
-}
-
-
-EdgeInertial2::EdgeInertial2(IMU::Preintegrated *pInt):JRg(pInt->JRg.cast<double>()),
-                                                     JVg(pInt->JVg.cast<double>()), JPg(pInt->JPg.cast<double>()), JVa(pInt->JVa.cast<double>()),
-                                                     JPa(pInt->JPa.cast<double>()), mpInt(pInt), dt(pInt->dT)
-{
-  // This edge links 6 vertices
-  resize(6);
-  g << 0, 0, -IMU::GRAVITY_VALUE;
-
-  Matrix9d InfoRVP = pInt->C.block<9,9>(0,0).cast<double>().inverse();
-  Matrix9d Info; // PRV
-  Info.block<3,3>(0,0) = InfoRVP.block<3,3>(6,6);
-  Info.block<6,6>(3,3) = InfoRVP.block<6,6>(0,0);
-  Info.block<3,6>(0,3) = InfoRVP.block<3,6>(6,0);
-  Info.block<6,3>(3,0) = InfoRVP.block<6,3>(0,6);
-  Info = (Info+Info.transpose())/2;
-  Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double,9,9> > es(Info);
-  Eigen::Matrix<double,9,1> eigs = es.eigenvalues();
-  for(int i=0;i<9;i++)
-    if(eigs[i]<1e-12)
-      eigs[i]=0;
-  Info = es.eigenvectors()*eigs.asDiagonal()*es.eigenvectors().transpose();
-  setInformation(Info);
-}
-void EdgeInertial2::computeError()
-{
-#ifdef TIMER_FLOW
-  ++num_dt_[0];
-  timer_[0].Start();
-#endif
-  // TODO Maybe Reintegrate inertial measurments when difference between linearization point and current estimate is too big
-  const VertexNavStatePR* VP1 = static_cast<const VertexNavStatePR*>(_vertices[0]);
-  const VertexNavStatePR* VP2 = static_cast<const VertexNavStatePR*>(_vertices[4]);
-  const VertexVelocity* VV1= static_cast<const VertexVelocity*>(_vertices[1]);
-  const VertexGyroBias* VG1= static_cast<const VertexGyroBias*>(_vertices[2]);
-  const VertexAccBias* VA1= static_cast<const VertexAccBias*>(_vertices[3]);
-  const VertexVelocity* VV2 = static_cast<const VertexVelocity*>(_vertices[5]);
-  const IMU::Bias b1(VA1->estimate()[0],VA1->estimate()[1],VA1->estimate()[2],VG1->estimate()[0],VG1->estimate()[1],VG1->estimate()[2]);
-  const Eigen::Matrix3d dR = mpInt->GetDeltaRotation(b1).cast<double>();
-  const Eigen::Vector3d dV = mpInt->GetDeltaVelocity(b1).cast<double>();
-  const Eigen::Vector3d dP = mpInt->GetDeltaPosition(b1).cast<double>();
-
-  const Eigen::Vector3d er = Sophus::SO3exd::Log(dR.transpose()*VP1->estimate().Rwb_.transpose()*VP2->estimate().Rwb_);
-  const Eigen::Vector3d ev = VP1->estimate().Rwb_.transpose()*(VV2->estimate() - VV1->estimate() - g*dt) - dV;
-  const Eigen::Vector3d ep = VP1->estimate().Rwb_.transpose()*(VP2->estimate().pwb_ - VP1->estimate().pwb_
-                                                              - VV1->estimate()*dt - g*dt*dt/2) - dP;
-
-  _error << ep, er, ev;
-#ifdef TIMER_FLOW
-  sum_dt_[0] += timer_[0].GetDTms(true);
-#endif
-}
-
-void EdgeInertial2::linearizeOplus()
-{
-#ifdef TIMER_FLOW
-  ++num_dt_[1];
-  timer_[1].Start();
-#endif
-  const VertexNavStatePR* VP1 = static_cast<const VertexNavStatePR*>(_vertices[0]);
-  const VertexNavStatePR* VP2 = static_cast<const VertexNavStatePR*>(_vertices[4]);
-  const VertexVelocity* VV1= static_cast<const VertexVelocity*>(_vertices[1]);
-  const VertexGyroBias* VG1= static_cast<const VertexGyroBias*>(_vertices[2]);
-  const VertexAccBias* VA1= static_cast<const VertexAccBias*>(_vertices[3]);
-  const VertexVelocity* VV2= static_cast<const VertexVelocity*>(_vertices[5]);
-  const IMU::Bias b1(VA1->estimate()[0],VA1->estimate()[1],VA1->estimate()[2],VG1->estimate()[0],VG1->estimate()[1],VG1->estimate()[2]);
-  const IMU::Bias db = mpInt->GetDeltaBias(b1);
-  Eigen::Vector3d dbg;
-  dbg << db.bwx, db.bwy, db.bwz;
-
-  const Eigen::Matrix3d Rwb1 = VP1->estimate().Rwb_;
-  const Eigen::Matrix3d Rbw1 = Rwb1.transpose();
-  const Eigen::Matrix3d Rwb2 = VP2->estimate().Rwb_;
-
-  const Eigen::Matrix3d dR = mpInt->GetDeltaRotation(b1).cast<double>();
-  const Eigen::Matrix3d eR = dR.transpose()*Rbw1*Rwb2;
-  const Eigen::Vector3d er = Sophus::SO3exd::Log(eR);
-  const Eigen::Matrix3d invJr = Sophus::SO3exd::JacobianRInv(er);
-
-  static constexpr int idR = 3, idP = 0;
-  static constexpr int iderrPRV[3] = {0, 3, 6};
-  // Jacobians wrt Pose 1
-  _jacobianOplus[0].setZero();
-  // rotation
-  _jacobianOplus[0].block<3,3>(iderrPRV[1],idR) = -invJr*Rwb2.transpose()*Rwb1; // OK
-  _jacobianOplus[0].block<3,3>(iderrPRV[2],idR) = Sophus::SO3d::hat(Rbw1*(VV2->estimate() - VV1->estimate() - g*dt)); // OK
-  _jacobianOplus[0].block<3,3>(iderrPRV[0],idR) = Sophus::SO3d::hat(Rbw1*(VP2->estimate().pwb_ - VP1->estimate().pwb_
-                                                              - VV1->estimate()*dt - 0.5*g*dt*dt)); // OK
-  // translation
-  _jacobianOplus[0].block<3,3>(iderrPRV[0],idP) = -Eigen::Matrix3d::Identity(); // OK
-
-  // Jacobians wrt Velocity 1
-  _jacobianOplus[1].setZero();
-  _jacobianOplus[1].block<3,3>(iderrPRV[2],0) = -Rbw1; // OK
-  _jacobianOplus[1].block<3,3>(iderrPRV[0],0) = -Rbw1*dt; // OK
-
-  // Jacobians wrt Gyro 1
-  _jacobianOplus[2].setZero();
-  _jacobianOplus[2].block<3,3>(iderrPRV[1],0) = -invJr*eR.transpose()*Sophus::SO3exd::JacobianR(JRg*dbg)*JRg; // OK
-  _jacobianOplus[2].block<3,3>(iderrPRV[2],0) = -JVg; // OK
-  _jacobianOplus[2].block<3,3>(iderrPRV[0],0) = -JPg; // OK
-
-  // Jacobians wrt Accelerometer 1
-  _jacobianOplus[3].setZero();
-  _jacobianOplus[3].block<3,3>(iderrPRV[2],0) = -JVa; // OK
-  _jacobianOplus[3].block<3,3>(iderrPRV[0],0) = -JPa; // OK
-
-  // Jacobians wrt Pose 2
-  _jacobianOplus[4].setZero();
-  // rotation
-  _jacobianOplus[4].block<3,3>(iderrPRV[1],idR) = invJr; // OK
-  // translation
-  _jacobianOplus[4].block<3,3>(iderrPRV[0],idP) = Rbw1*Rwb2; // OK
-
-  // Jacobians wrt Velocity 2
-  _jacobianOplus[5].setZero();
-  _jacobianOplus[5].block<3,3>(iderrPRV[2],0) = Rbw1; // OK
-#ifdef TIMER_FLOW
-  sum_dt_[1] += timer_[1].GetDTms(true);
-#endif
 }
 
 EdgeInertialGS::EdgeInertialGS(IMU::Preintegrated *pInt):JRg(pInt->JRg.cast<double>()),

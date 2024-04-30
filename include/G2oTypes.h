@@ -37,14 +37,6 @@
 #include"Converter.h"
 #include <math.h>
 
-#define TIMER_FLOW
-#ifdef TIMER_FLOW
-#include "common/mlog/timer.h"
-using namespace VIEO_SLAM::mlog;
-#endif
-#include "common/camera_models/camera_base.h"
-#include "common/navstate/nav_state.h"
-
 namespace ORB_SLAM3
 {
 
@@ -352,12 +344,6 @@ class EdgeMono : public g2o::BaseBinaryEdge<2,Eigen::Vector2d,g2o::VertexSBAPoin
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-#ifdef TIMER_FLOW
-  double sum_dt_[2] = {0};
-  int num_dt_[2] = {0};
-  Timer timer_[2];
-#endif
-
     EdgeMono(int cam_idx_=0): cam_idx(cam_idx_){
     }
 
@@ -365,17 +351,10 @@ public:
     virtual bool write(std::ostream& os) const{return false;}
 
     void computeError(){
-#ifdef TIMER_FLOW
-      ++num_dt_[0];
-      timer_[0].Start();
-#endif
         const g2o::VertexSBAPointXYZ* VPoint = static_cast<const g2o::VertexSBAPointXYZ*>(_vertices[0]);
         const VertexPose* VPose = static_cast<const VertexPose*>(_vertices[1]);
         const Eigen::Vector2d obs(_measurement);
         _error = obs - VPose->estimate().Project(VPoint->estimate(),cam_idx);
-#ifdef TIMER_FLOW
-      sum_dt_[0] += timer_[0].GetDTms(true);
-#endif
     }
 
 
@@ -459,29 +438,16 @@ class EdgeStereo : public g2o::BaseBinaryEdge<3,Eigen::Vector3d,g2o::VertexSBAPo
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-#ifdef TIMER_FLOW
-  double sum_dt_[2] = {0};
-  int num_dt_[2] = {0};
-  Timer timer_[2];
-#endif
-
     EdgeStereo(int cam_idx_=0): cam_idx(cam_idx_){}
 
     virtual bool read(std::istream& is){return false;}
     virtual bool write(std::ostream& os) const{return false;}
 
     void computeError(){
-#ifdef TIMER_FLOW
-      ++num_dt_[0];
-      timer_[0].Start();
-#endif
         const g2o::VertexSBAPointXYZ* VPoint = static_cast<const g2o::VertexSBAPointXYZ*>(_vertices[0]);
         const VertexPose* VPose = static_cast<const VertexPose*>(_vertices[1]);
         const Eigen::Vector3d obs(_measurement);
         _error = obs - VPose->estimate().ProjectStereo(VPoint->estimate(),cam_idx);
-#ifdef TIMER_FLOW
-      sum_dt_[0] += timer_[0].GetDTms(true);
-#endif
     }
 
     bool isDepthPositive()
@@ -513,436 +479,6 @@ public:
     const int cam_idx;
 };
 
-// extend edges to get H
-typedef enum HessianExactMode { kExactNoRobust, kExactRobust, kNotExact } eHessianExactMode;
-using namespace Eigen;
-using namespace g2o;
-template <int D, typename E, typename VertexXi, typename VertexXj>
-class BaseBinaryEdgeEx : public BaseBinaryEdge<D, E, VertexXi, VertexXj> {
-public:
-#ifdef TIMER_FLOW
-  double sum_dt_[2] = {0};
-  int num_dt_[2] = {0};
-  Timer timer_[2];
-#endif
-
-protected:
-  using Base = BaseBinaryEdge<D, E, VertexXi, VertexXj>;
-  using Base::_jacobianOplusXi;
-  using Base::_jacobianOplusXj;
-  using MatrixXid = Matrix<double, VertexXi::Dimension, VertexXi::Dimension>;
-  using MatrixXjd = Matrix<double, VertexXj::Dimension, VertexXj::Dimension>;
-  using MatrixXijd = Matrix<double, VertexXi::Dimension, VertexXj::Dimension>;
-  using MatrixXjid = Matrix<double, VertexXj::Dimension, VertexXi::Dimension>;
-#ifdef USE_G2O_NEWEST
-  using Base::_hessianTuple;
-  using Base::_hessianTupleTransposed;
-#else
-  using Base::_hessian;
-  using Base::_hessianTransposed;
-#endif
-  using Base::_hessianRowMajor;
-  using Base::robustInformation;
-
-public:
-  using Base::chi2;
-  using Base::information;
-  using Base::robustKernel;
-#ifdef USE_G2O_NEWEST
-  using typename Base::HessianTuple;
-  using typename Base::HessianTupleTransposed;
-  using JacobianXiOplusType =
-      typename BaseFixedSizedEdge<D, E, VertexXi, VertexXj>::template JacobianType<D, VertexXi::Dimension>;
-  using JacobianXjOplusType =
-      typename BaseFixedSizedEdge<D, E, VertexXi, VertexXj>::template JacobianType<D, VertexXj::Dimension>;
-#else
-  using typename Base::HessianBlockTransposedType;
-  using typename Base::HessianBlockType;
-  using typename Base::JacobianXiOplusType;
-  using typename Base::JacobianXjOplusType;
-#endif
-  using typename Base::InformationType;
-  virtual void getRho(bool& robust, Vector3d& rho) const {
-    if (robust) {
-      const RobustKernel* robustkernel = robustKernel();
-      if (robustkernel)
-        robustkernel->robustify(chi2(), rho);
-      else
-        robust = false;
-    }
-  }
-
-  virtual MatrixXid getHessianXi(bool robust = true) const {
-    const JacobianXiOplusType& jac = _jacobianOplusXi;
-    Vector3d rho;
-    getRho(robust, rho);
-    const InformationType& rinfo = robust ? InformationType(rho[1] * information()) : information();
-    return jac.transpose() * rinfo * jac;
-  }
-  virtual MatrixXjd getHessianXj(bool robust = true) const {
-    const JacobianXjOplusType& jac = _jacobianOplusXj;
-    Vector3d rho;
-    getRho(robust, rho);
-    const InformationType& rinfo = robust ? InformationType(rho[1] * information()) : information();
-    return jac.transpose() * rinfo * jac;
-  }
-  virtual MatrixXijd getHessianXij(int8_t exact_mode = (int8_t)kExactRobust) const {
-    if ((int8_t)kNotExact == exact_mode) {
-#ifdef USE_G2O_NEWEST
-      if (_hessianRowMajor[0]) {
-        return MatrixXjid(std::get<0>(_hessianTupleTransposed)).transpose();
-#else
-      if (_hessianRowMajor) {
-        return MatrixXijd(_hessianTransposed.transpose());
-#endif
-      } else {
-#ifdef USE_G2O_NEWEST
-        return MatrixXijd(std::get<0>(_hessianTuple));
-#else
-        return MatrixXijd(_hessian);
-#endif
-      }
-    } else {
-      const JacobianXiOplusType& jaci = _jacobianOplusXi;
-      const JacobianXjOplusType& jacj = _jacobianOplusXj;
-      Vector3d rho;
-      bool robust = (int8_t)kExactRobust == exact_mode;
-      getRho(robust, rho);
-      const InformationType& rinfo = robust ? InformationType(rho[1] * information()) : information();
-      return jaci.transpose() * rinfo * jacj;
-    }
-  }
-  virtual MatrixXjid getHessianXji(int8_t exact_mode = (int8_t)kExactRobust) const {
-    if ((int8_t)kNotExact == exact_mode) {
-#ifdef USE_G2O_NEWEST
-      if (_hessianRowMajor[0]) {
-        return MatrixXjid(std::get<0>(_hessianTupleTransposed));
-#else
-      if (_hessianRowMajor) {
-        return MatrixXjid(_hessianTransposed);
-#endif
-      } else {
-#ifdef USE_G2O_NEWEST
-        return MatrixXijd(std::get<0>(_hessianTuple)).transpose();
-#else
-        return MatrixXjid(_hessian.transpose());
-#endif
-      }
-    } else {
-      const JacobianXiOplusType& jaci = _jacobianOplusXi;
-      const JacobianXjOplusType& jacj = _jacobianOplusXj;
-      Vector3d rho;
-      bool robust = (int8_t)kExactRobust == exact_mode;
-      getRho(robust, rho);
-      const InformationType& rinfo = robust ? InformationType(rho[1] * information()) : information();
-      return jacj.transpose() * rinfo * jaci;
-    }
-  }
-};
-class ImuCamInfo {
-public:
-  ImuCamInfo() {}
-  ImuCamInfo(KeyFrame *pKF);
-
-  // For IMU
-  Eigen::Matrix3d Rwb_;
-  Eigen::Vector3d pwb_;
-
-  // to speedup
-  // Eigen::aligned_vector<Sophus::SE3exd> vTcw_;
-  std::vector<Matrix3d> vRcw_;
-  std::vector<Vector3d> vtcw_;
-
-  // Camera-IMU in/extrinsics
-  // Eigen::aligned_vector<Sophus::SE3exd> vTcb_;
-  std::vector<Matrix3d> vRcb_;
-  std::vector<Vector3d> vtcb_;
-  float bf_;
-  typedef VIEO_SLAM::camm::Camera Camera;
-  std::vector<Camera::Ptr> vintr_;
-
-  // nswb then nsbw
-  int sz_nswb_;
-
-  void SetParams(const std::vector<Camera::Ptr>& vintr, const Sophus::SE3exd& Tcrb = Sophus::SE3exd(),
-                 const float* bf = nullptr, int sz_nswb = -1) {
-    vintr_ = vintr;
-    int iend = (int)vintr.size();
-    // vTcb_.reserve(iend);
-    vRcb_.reserve(iend);
-    vtcb_.reserve(iend);
-    for (int i = 0; i < iend; ++i) {
-      auto Tccr = vintr[i]->GetTcr().cast<double>();
-      // vTcb_.emplace_back(Tccr * Tcrb);
-      // vRcb_.emplace_back(vTcb_.back().rotationMatrix());
-      auto Tcb = Tccr * Tcrb;
-      vRcb_.emplace_back(Tcb.rotationMatrix());
-      vtcb_.emplace_back(Tcb.translation());
-    }
-    // vTcw_ = vTcb_;
-    vRcw_ = vRcb_;
-    vtcw_ = vtcb_;
-    if (bf) bf_ = *bf;
-    if (sz_nswb < 0) sz_nswb = iend;
-    sz_nswb_ = sz_nswb;
-  }
-
-  // Xw can also be Xh
-  template <int MODE_OPT_VAR = 0>
-  inline void GetTcw_wX(int cam_idx, Vector3d& Xw, double& scale, const ImuCamInfo* pposeh, Matrix3d& Rcw,
-                        Vector3d& tcw, int camh_idx = 0, Vector3d* phX_unscale = nullptr, Matrix3d* pRwh = nullptr,
-                        Vector3d* ptwh = nullptr) const {
-    // twbh and twb has the same scale due to imu restrict=>only mp has scale problem, so no 2 scales opt. needed
-    //  or we only consider visual factors: we suppose twbh and twb has the same scale or their diff. can be optimized
-    //  =>sRcw when no Rwh else sRwh or 2MODE: 1/s*Rcw when no Rwh else 1/s*Rwh
-    // s * Rcw(R12) * wX + tcw or 2MODE: 1/s * Rcw(R21) * wX + tcw(-1/s*R21*t12)
-    {
-      if (2 == MODE_OPT_VAR) {
-        scale = 1. / scale;
-        assert(sz_nswb_ <= cam_idx && "Please use Faster Vertex params / sz_nswb<=cam_idx!");
-      } else {
-        if (sz_nswb_ <= cam_idx) {
-          PRINT_INFO_MUTEX("check sz=" << sz_nswb_ << ",cam_idx=" << cam_idx << std::endl);
-        }
-        assert(sz_nswb_ > cam_idx);
-      }
-      Rcw = vRcw_[cam_idx];  // vTcw_[cam_idx].rotationMatrix();
-      tcw = vtcw_[cam_idx];  // vTcw_[cam_idx].translation();
-      // notice that tcb&twb could be scale near 1 and Tcb is Tcicr used in MODE2
-      if (2 == MODE_OPT_VAR && !pposeh) tcw *= scale;
-    }
-    if (phX_unscale) *phX_unscale = Xw;
-    Xw *= scale;
-    if (pposeh) {
-      Matrix3d Rwh;
-      Vector3d twh;
-      {
-        if (2 == MODE_OPT_VAR)
-          assert(pposeh->sz_nswb_ <= camh_idx);
-        else
-          assert(pposeh->sz_nswb_ > camh_idx);
-        auto Twh = Sophus::SE3exd(pposeh->vRcw_[camh_idx], pposeh->vtcw_[camh_idx])
-            .inverse();  // pposeh->vTcw_[camh_idx].inverse();
-        Rwh = Twh.rotationMatrix();
-        twh = Twh.translation();
-
-        if (pRwh) *pRwh = Rwh.matrix();
-        if (2 == MODE_OPT_VAR) twh *= scale;
-      }
-      // wX=Twh*hX=Rwh*hX+twh=Rwb*Rbh*hX + (Rwb*tbh+twb)=Rwb(Rbh*hX + tbh) + twb
-      Xw = Rwh * Xw + twh;
-
-      if (ptwh) *ptwh = std::move(twh);
-    }
-  }
-
-  using Vector2img = Eigen::Matrix<VIEO_SLAM::FLT_CAMM, 2, 1>;
-  template <int DE>
-  void cam_project(int cam_idx, const Vector3d& x_C, Eigen::Matrix<double, DE, 1>* pp2d,
-                   Eigen::Matrix<double, DE, 3>* pJproj = nullptr) const {
-    if (pp2d) {
-      auto& res = *pp2d;
-      Vector2img x_img;
-      vintr_[cam_idx]->Project(x_C, &x_img);
-      res.template segment<2>(0) = x_img.cast<double>();
-      if (DE > 2) res[2] = res[0] - bf_ / x_C[2];
-    }
-    if (pJproj) {
-      auto& Jproj = *pJproj;
-      Matrix<double, 2, 3> Jproj_tmp;
-      vintr_[cam_idx]->Project(x_C, nullptr, &Jproj_tmp);
-      Jproj.template block<2, 3>(0, 0) = -Jproj_tmp;
-      // ur=ul-b*fx/dl,dl=z => J_e_P'=J_e_Pc=-[fx/z 0 -fx*x/z^2; 0 fy/z -fy*y/z^2; fx/z 0 -fx*x/z^2+bf/z^2]
-      if (DE > 2) {
-        double invz = 1 / x_C[2], invz_2 = invz * invz;
-        Jproj.template block<1, 3>(2, 0) << Jproj(0, 0), Jproj(0, 1), Jproj(0, 2) - bf_ * invz_2;
-      }
-    }
-  }
-  Eigen::Vector3d ProjectStereo(const Eigen::Vector3d &Xw, int cam_idx) const;
-
-  void Update() {
-    // Update camera poses
-    auto Tbw = Sophus::SE3exd(Rwb_, pwb_);
-    int iend = (int)vRcb_.size();  //(int)vTcb_.size();
-    int iwb_end = std::min(iend, sz_nswb_), i = iwb_end;
-    for (; i < iend; ++i) {
-      // vTcw_[i] = vTcb_[i] * Tbw;
-      // vRcw_[i] = vTcw_[i].rotationMatrix();
-      vRcw_[i] = vRcb_[i] * Tbw.rotationMatrix();
-      vtcw_[i] = vRcb_[i] * Tbw.translation() + vtcb_[i];
-    }
-    if (0 < iwb_end) {
-      // Tbw = Tbw.inverse();
-      for (i = 0; i < iwb_end; ++i) {
-        // vTcw_[i] = vTcb_[i] * Tbw;
-        // vRcw_[i] = vTcw_[i].rotationMatrix();
-        Matrix3d Rbw = Tbw.rotationMatrix().transpose();
-        vRcw_[i] = vRcb_[i] * Rbw;
-        vtcw_[i] = vRcb_[i] * Rbw * -Tbw.translation() + vtcb_[i];
-      }
-    }
-  }
-};
-class VertexNavStatePR : public BaseVertex<6, ImuCamInfo> {
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
-  using Base = BaseVertex<6, ImuCamInfo>;
-
-  VertexNavStatePR() : Base() {}
-  VertexNavStatePR(KeyFrame* pKF){
-    setEstimate(ImuCamInfo(pKF));
-  }
-
-  // default constructor is enough
-  virtual bool read(std::istream& is) { return true; }
-
-  virtual bool write(std::ostream& os) const { return true; }
-
-  // virtual
-  void setToOriginImpl() {}
-  void oplusImpl(const double* update_) {
-    Eigen::Map<const Matrix<double, 6, 1>> update(update_);
-    VIEO_SLAM::NavStateBased ns;
-    ns.pwb_ = this->_estimate.pwb_;
-    ns.setRwb(this->_estimate.Rwb_);
-    ns.IncSmall(update);
-    this->_estimate.pwb_ = ns.pwb_;
-    this->_estimate.Rwb_ = ns.getRwb();
-    this->_estimate.Update();
-    updateCache();
-  }
-
-  typedef VIEO_SLAM::camm::Camera Camera;
-  void SetParams(const std::vector<Camera::Ptr>& vintr, const Sophus::SE3exd& Tcrb = Sophus::SE3exd(),
-                 const float* bf = nullptr, int sz_nswb = -1) {
-    this->_estimate.SetParams(vintr, Tcrb, bf, sz_nswb);
-  }
-  void SetNavState(const VIEO_SLAM::NavStateBased& et) {
-    auto& imucam_info = this->_estimate;
-    imucam_info.pwb_ = et.pwb_;
-    imucam_info.Rwb_ = et.Rwb_.matrix();
-    assert(!imucam_info.vintr_.empty());
-    imucam_info.Update();
-  }
-};
-class EdgeReprojectPRStereo : public BaseBinaryEdgeEx<3, Matrix<double, 3, 1>, VertexSBAPointXYZ, VertexNavStatePR> {
-  using VectorDEd = Matrix<double, 3, 1>;
-
-  typedef BaseBinaryEdgeEx<3, VectorDEd, VertexSBAPointXYZ, VertexNavStatePR>
-      Base;
-
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
-  EdgeReprojectPRStereo(int cam_idx = 0) : Base(), cam_idx_(cam_idx) {}
-
-  bool read(std::istream &is) { return true; }
-  bool write(std::ostream &os) const { return true; }
-
-  void computeError() override {
-#ifdef TIMER_FLOW
-    ++num_dt_[0];
-    timer_[0].Start();
-#endif
-    const auto *VPoint =
-        static_cast<const g2o::VertexSBAPointXYZ *>(_vertices[0]);
-    const auto *VPose = static_cast<const VertexNavStatePR *>(_vertices[1]);
-    // auto &pose = VPose->estimate();
-    const Eigen::Vector3d obs(_measurement);
-    _error =
-        obs - VPose->estimate().ProjectStereo(VPoint->estimate(), cam_idx_);
-#ifdef TIMER_FLOW
-    sum_dt_[0] += timer_[0].GetDTms(true);
-#endif
-  }
-  void linearizeOplus() override;
-
-  bool isDepthPositive()
-      const { // unused in IMU motion-only BA, but used in localBA&GBA
-    const auto *pXh = static_cast<const VertexSBAPointXYZ *>(_vertices[0]);
-    Vector3d wX = pXh->estimate();
-    const auto *vns = static_cast<const VertexNavStatePR *>(_vertices[1]);
-    auto &pose = vns->estimate();
-    double scale = 1.;
-    Matrix3d Rcw = pose.vRcw_[cam_idx_];
-    Vector3d tcw = pose.vtcw_[cam_idx_];
-    //pose.GetTcw_wX(cam_idx_, wX, scale, nullptr, Rcw, tcw);
-    return (Rcw * wX + tcw)(2) > 0.0; // Xc.z>0
-  }
-
-protected:
-  int cam_idx_;
-
-  using Base::_jacobianOplusXi;
-  using Base::_jacobianOplusXj;
-  using Base::_vertices;
-};
-class EdgeReprojectPR : public BaseBinaryEdgeEx<2, Matrix<double, 2, 1>, VertexSBAPointXYZ, VertexNavStatePR> {
-  using VectorDEd = Matrix<double, 2, 1>;
-
-  typedef BaseBinaryEdgeEx<2, VectorDEd, VertexSBAPointXYZ, VertexNavStatePR> Base;
-
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
-  EdgeReprojectPR(int cam_idx = 0) : Base(), cam_idx_(cam_idx) {}
-
-  bool read(std::istream& is) { return true; }
-  bool write(std::ostream& os) const { return true; }
-
-  void computeError() override {
-#ifdef TIMER_FLOW
-    ++num_dt_[0];
-    timer_[0].Start();
-#endif
-    const g2o::VertexSBAPointXYZ* VPoint = static_cast<const g2o::VertexSBAPointXYZ*>(_vertices[0]);
-    const VertexNavStatePR* VPose = static_cast<const VertexNavStatePR*>(_vertices[1]);
-    const Eigen::Vector2d obs(_measurement);
-    Eigen::Vector2f p2d;
-    VPose->estimate().vintr_[cam_idx_]->Project(
-        VPose->estimate().vRcw_[cam_idx_] * VPoint->estimate() + VPose->estimate().vtcw_[cam_idx_], &p2d);
-    _error = obs - p2d.cast<double>();  // VPose->estimate().Project(VPoint->estimate(),cam_idx);
-    /*
-    const auto* pXh = static_cast<const VertexSBAPointXYZ*>(_vertices[0]);  // Xh/Ph
-    Vector3d wX = pXh->estimate();
-    // Tbs_w, bs is b for slam
-    const auto* vns = static_cast<const VertexNavStatePR*>(_vertices[1]);
-    double scale = 1.;
-    Matrix3d Rcw;
-    Vector3d tcw;
-    assert(vns->pimucam_info_);
-    vns->pimucam_info_->GetTcw_wX(cam_idx_, wX, scale, nullptr, Rcw, tcw);
-    // Pc=Tcb*Tbw*Pw=Rcb*Rbw*Pw+Rcb*tbw(-Rcb*Rbw*twb)+tcb(-Rcb*tbc)=Rcb*Rbw*(Pw-twb)+tcb;
-    VectorDEd p2d;
-    vns->pimucam_info_->cam_project(cam_idx_, Rcw * wX + tcw, &p2d);
-    this->_error = this->_measurement - p2d;*/
-#ifdef TIMER_FLOW
-    sum_dt_[0] += timer_[0].GetDTms(true);
-#endif
-  }
-  void linearizeOplus() override;
-
-  bool isDepthPositive() const {  // unused in IMU motion-only BA, but used in localBA&GBA
-    const auto* pXh = static_cast<const VertexSBAPointXYZ*>(_vertices[0]);
-    Vector3d wX = pXh->estimate();
-    const auto* vns = static_cast<const VertexNavStatePR*>(_vertices[1]);
-    auto& pose = vns->estimate();
-    double scale = 1.;
-    Matrix3d Rcw;
-    Vector3d tcw;
-    pose.GetTcw_wX(cam_idx_, wX, scale, nullptr, Rcw, tcw);
-    return (Rcw * wX + tcw)(2) > 0.0;  // Xc.z>0
-  }
-
-protected:
-  int cam_idx_;
-
-  using Base::_jacobianOplusXi;
-  using Base::_jacobianOplusXj;
-  using Base::_vertices;
-};
 
 class EdgeStereoOnlyPose : public g2o::BaseUnaryEdge<3,Eigen::Vector3d,VertexPose>
 {
@@ -983,12 +519,6 @@ class EdgeInertial : public g2o::BaseMultiEdge<9,Vector9d>
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
-#ifdef TIMER_FLOW
-  double sum_dt_[2] = {0};
-  int num_dt_[2] = {0};
-  Timer timer_[2];
-#endif
 
     EdgeInertial(IMU::Preintegrated* pInt);
 
@@ -1044,74 +574,6 @@ public:
     IMU::Preintegrated* mpInt;
     const double dt;
     Eigen::Vector3d g;
-};
-
-
-class EdgeInertial2 : public g2o::BaseMultiEdge<9,Vector9d>
-{
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
-#ifdef TIMER_FLOW
-  double sum_dt_[2] = {0};
-  int num_dt_[2] = {0};
-  Timer timer_[2];
-#endif
-
-  EdgeInertial2(IMU::Preintegrated* pInt);
-
-  virtual bool read(std::istream& is){return false;}
-  virtual bool write(std::ostream& os) const{return false;}
-
-  void computeError();
-  virtual void linearizeOplus();
-
-  Eigen::Matrix<double,24,24> GetHessian(){
-    linearizeOplus();
-    Eigen::Matrix<double,9,24> J;
-    J.block<9,6>(0,0) = _jacobianOplus[0];
-    J.block<9,3>(0,6) = _jacobianOplus[1];
-    J.block<9,3>(0,9) = _jacobianOplus[2];
-    J.block<9,3>(0,12) = _jacobianOplus[3];
-    J.block<9,6>(0,15) = _jacobianOplus[4];
-    J.block<9,3>(0,21) = _jacobianOplus[5];
-    Eigen::Vector3d rho;
-    bool robust = true;
-    if (robust) {
-      const g2o::RobustKernel* robustkernel = robustKernel();
-      if (robustkernel)
-        robustkernel->robustify(chi2(), rho);
-      else
-        robust = false;
-    }
-    const InformationType& rinfo = robust ? InformationType(rho[1] * information()) : information();
-    return J.transpose()*rinfo*J;
-  }
-
-  Eigen::Matrix<double,18,18> GetHessianNoPose1(){
-    linearizeOplus();
-    Eigen::Matrix<double,9,18> J;
-    J.block<9,3>(0,0) = _jacobianOplus[1];
-    J.block<9,3>(0,3) = _jacobianOplus[2];
-    J.block<9,3>(0,6) = _jacobianOplus[3];
-    J.block<9,6>(0,9) = _jacobianOplus[4];
-    J.block<9,3>(0,15) = _jacobianOplus[5];
-    return J.transpose()*information()*J;
-  }
-
-  Eigen::Matrix<double,9,9> GetHessian2(){
-    linearizeOplus();
-    Eigen::Matrix<double,9,9> J;
-    J.block<9,6>(0,0) = _jacobianOplus[4];
-    J.block<9,3>(0,6) = _jacobianOplus[5];
-    return J.transpose()*information()*J;
-  }
-
-  const Eigen::Matrix3d JRg, JVg, JPg;
-  const Eigen::Matrix3d JVa, JPa;
-  IMU::Preintegrated* mpInt;
-  const double dt;
-  Eigen::Vector3d g;
 };
 
 
@@ -1208,40 +670,20 @@ class EdgeGyroRW : public g2o::BaseBinaryEdge<3,Eigen::Vector3d,VertexGyroBias,V
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-#ifdef TIMER_FLOW
-  double sum_dt_[2] = {0};
-  int num_dt_[2] = {0};
-  Timer timer_[2];
-#endif
-
     EdgeGyroRW(){}
 
     virtual bool read(std::istream& is){return false;}
     virtual bool write(std::ostream& os) const{return false;}
 
     void computeError(){
-#ifdef TIMER_FLOW
-      ++num_dt_[0];
-      timer_[0].Start();
-#endif
         const VertexGyroBias* VG1= static_cast<const VertexGyroBias*>(_vertices[0]);
         const VertexGyroBias* VG2= static_cast<const VertexGyroBias*>(_vertices[1]);
         _error = VG2->estimate()-VG1->estimate();
-#ifdef TIMER_FLOW
-      sum_dt_[0] += timer_[0].GetDTms(true);
-#endif
     }
 
     virtual void linearizeOplus(){
-#ifdef TIMER_FLOW
-      ++num_dt_[1];
-      timer_[1].Start();
-#endif
         _jacobianOplusXi = -Eigen::Matrix3d::Identity();
         _jacobianOplusXj.setIdentity();
-#ifdef TIMER_FLOW
-      sum_dt_[1] += timer_[1].GetDTms(true);
-#endif
     }
 
     Eigen::Matrix<double,6,6> GetHessian(){
@@ -1274,40 +716,20 @@ class EdgeAccRW : public g2o::BaseBinaryEdge<3,Eigen::Vector3d,VertexAccBias,Ver
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-#ifdef TIMER_FLOW
-  double sum_dt_[2] = {0};
-  int num_dt_[2] = {0};
-  Timer timer_[2];
-#endif
-
     EdgeAccRW(){}
 
     virtual bool read(std::istream& is){return false;}
     virtual bool write(std::ostream& os) const{return false;}
 
     void computeError(){
-#ifdef TIMER_FLOW
-      ++num_dt_[0];
-      timer_[0].Start();
-#endif
         const VertexAccBias* VA1= static_cast<const VertexAccBias*>(_vertices[0]);
         const VertexAccBias* VA2= static_cast<const VertexAccBias*>(_vertices[1]);
         _error = VA2->estimate()-VA1->estimate();
-#ifdef TIMER_FLOW
-      sum_dt_[0] += timer_[0].GetDTms(true);
-#endif
     }
 
     virtual void linearizeOplus(){
-#ifdef TIMER_FLOW
-      ++num_dt_[1];
-      timer_[1].Start();
-#endif
         _jacobianOplusXi = -Eigen::Matrix3d::Identity();
         _jacobianOplusXj.setIdentity();
-#ifdef TIMER_FLOW
-      sum_dt_[1] += timer_[1].GetDTms(true);
-#endif
     }
 
     Eigen::Matrix<double,6,6> GetHessian(){

@@ -2516,7 +2516,6 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
                 if(!pKFi->isBad())
                 {
                     lFixedKeyFrames.push_back(pKFi);
-                  //if(lFixedKeyFrames.size()>=maxFixKF)
                     break;
                 }
             }
@@ -2550,7 +2549,6 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
 
     // Set Local temporal KeyFrame vertices
     N=vpOptimizableKFs.size();
-    using VertexPose = VertexNavStatePR;
     for(int i=0; i<N; i++)
     {
         KeyFrame* pKFi = vpOptimizableKFs[i];
@@ -2614,7 +2612,7 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
     }
 
     // Create intertial constraints
-    vector<EdgeInertial2*> vei(N,(EdgeInertial2*)NULL);
+    vector<EdgeInertial*> vei(N,(EdgeInertial*)NULL);
     vector<EdgeGyroRW*> vegr(N,(EdgeGyroRW*)NULL);
     vector<EdgeAccRW*> vear(N,(EdgeAccRW*)NULL);
 
@@ -2645,7 +2643,7 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
                 continue;
             }
 
-            vei[i] = new EdgeInertial2(pKFi->mpImuPreintegrated);
+            vei[i] = new EdgeInertial(pKFi->mpImuPreintegrated);
 
             vei[i]->setVertex(0,dynamic_cast<g2o::OptimizableGraph::Vertex*>(VP1));
             vei[i]->setVertex(1,dynamic_cast<g2o::OptimizableGraph::Vertex*>(VV1));
@@ -2706,8 +2704,6 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
     const int nExpectedSize = (N+lFixedKeyFrames.size())*lLocalMapPoints.size();
 
     // Mono
-  using EdgeStereo = EdgeReprojectPRStereo;
-  using EdgeMono = EdgeReprojectPR;
     vector<EdgeMono*> vpEdgesMono;
     vpEdgesMono.reserve(nExpectedSize);
 
@@ -2883,11 +2879,7 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
             }
         }
     }
-  static int num_vis=0,sum_vis=0;
-  sum_vis += vpEdgesMono.size() + vpEdgesStereo.size();
-  ++num_vis;
-  cout <<"avg vis="<<(float)sum_vis/num_vis<<endl;
-  cout << "  factor_visual num" << vpEdgesMono.size() <<"+"<<vpEdgesStereo.size()<< endl;
+cout << "  factor_visual num" << vpEdgesMono.size() << endl;
 
     //cout << "Total map points: " << lLocalMapPoints.size() << endl;
     for(map<int,int>::iterator mit=mVisEdges.begin(), mend=mVisEdges.end(); mit!=mend; mit++)
@@ -2911,12 +2903,12 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
     float err = optimizer.activeRobustChi2();
     if(pbStopFlag)
         optimizer.setForceStopFlag(pbStopFlag);
-    int optit[2] = {5, 10};
-  bool bDoMore = false;//true;
+    /*int optit[2] = {5, 10};
+  bool bDoMore = true;
     if (bLarge) optit[0] = bDoMore? 2 : 4;
     else optit[0] = bDoMore?4:10;
     optit[1] = opt_it - optit[0];
-  auto num_iters = optimizer.optimize(optit[0]); // Originally to 2
+    optimizer.optimize(optit[0]); // Originally to 2
 
   if (pbStopFlag)
     if (*pbStopFlag)  // judge mbAbortBA again
@@ -2957,43 +2949,13 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
     // Optimize again without the outliers
     optimizer.initializeOptimization(0);
     optimizer.optimize(optit[1]);  // 10 steps same as motion-only BA
-  }
+  }*/
+    optimizer.optimize(opt_it); // Originally to 2
 #ifdef REGISTER_TIMES
   std::chrono::steady_clock::time_point time_end3 = std::chrono::steady_clock::now();
 
   timelba_part = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_end3 - time_end2).count();
   if (pvdlba_par) pvdlba_par[2].push_back(timelba_part);
-  static int sum_iters=0,num_iters_st=0;
-  sum_iters+=num_iters;
-  ++num_iters_st;
-  cout << "check avg iter num=" << (float)sum_iters/num_iters_st <<endl;
-
-  static double sum_dt[2 * 3] = {0}, sum_num[2 * 3] = {0};
-  for (int j = 0; j < 2; ++j) {
-    for (int i = 0; i < vpEdgesMono.size(); ++i) {
-      sum_dt[j] += vpEdgesMono[i]->sum_dt_[j];
-      sum_num[j] += (double)vpEdgesMono[i]->num_dt_[j];
-    }
-    for (int i = 0; i < vpEdgesStereo.size(); ++i) {
-      sum_dt[2 + j] += vpEdgesStereo[i]->sum_dt_[j];
-      sum_num[2 + j] += (double)vpEdgesStereo[i]->num_dt_[j];
-    }
-    for (int i = 0; i < vei.size(); ++i) {
-      if (!vei[i]) continue;
-      sum_dt[4 + j] += vei[i]->sum_dt_[j];
-      sum_num[4 + j] += (double)vei[i]->num_dt_[j];
-    }
-//    for (int i = 0; i < vegr.size(); ++i)
-//      sum_dt[4 + j] += vegr[i]->sum_dt_[j];
-//    for (int i = 0; i < vear.size(); ++i)
-//      sum_dt[4 + j] += vear[i]->sum_dt_[j];
-  }
-  PRINT_INFO_MUTEX("e_mono avg tm:" << sum_dt[0] / num_iters_st << "+" << sum_dt[1] / num_iters_st << ",avg time:"
-                                    << sum_num[0] / num_iters_st << "+" << sum_num[1] / num_iters_st << endl);
-  PRINT_INFO_MUTEX("e_stereo avg tm:" << sum_dt[2] / num_iters_st << "+" << sum_dt[3] / num_iters_st << ",avg time:"
-                                      << sum_num[2] / num_iters_st << "+" << sum_num[3] / num_iters_st << endl);
-  PRINT_INFO_MUTEX("e_imu avg tm:" << sum_dt[4] / num_iters_st << "+" << sum_dt[5] / num_iters_st << ",avg time:"
-                                   << sum_num[4] / num_iters_st << "+" << sum_num[5] / num_iters_st << endl);
 #endif
     float err_end = optimizer.activeRobustChi2();
   // TODO: Some convergence problems have been detected here
@@ -3074,8 +3036,7 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
         KeyFrame* pKFi = vpOptimizableKFs[i];
 
         VertexPose* VP = static_cast<VertexPose*>(optimizer.vertex(pKFi->mnId));
-        //Sophus::SE3f Tcw(VP->estimate().Rcw[0].cast<float>(), VP->estimate().tcw[0].cast<float>());
-      Sophus::SE3f Tcw(VP->estimate().vRcw_[0].cast<float>(), VP->estimate().vtcw_[0].cast<float>());
+        Sophus::SE3f Tcw(VP->estimate().Rcw[0].cast<float>(), VP->estimate().tcw[0].cast<float>());
         pKFi->SetPose(Tcw);
         pKFi->mnBALocalForKF=0;
 
@@ -3097,8 +3058,7 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
     {
         KeyFrame* pKFi = *it;
         VertexPose* VP = static_cast<VertexPose*>(optimizer.vertex(pKFi->mnId));
-        //Sophus::SE3f Tcw(VP->estimate().Rcw[0].cast<float>(), VP->estimate().tcw[0].cast<float>());
-      Sophus::SE3f Tcw(VP->estimate().vRcw_[0].cast<float>(), VP->estimate().vtcw_[0].cast<float>());
+        Sophus::SE3f Tcw(VP->estimate().Rcw[0].cast<float>(), VP->estimate().tcw[0].cast<float>());
         pKFi->SetPose(Tcw);
         pKFi->mnBALocalForKF=0;
     }
