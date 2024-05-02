@@ -1179,6 +1179,10 @@ void Frame::ComputeStereoFishEyeMatches() {
             }
         }
     }
+  std::cout << nMatches<<"/"<<matches.size() << std::endl;
+  static int count =0;
+  if (++count > 10)
+    exit(-1);
 }
 
 bool Frame::isInFrustumChecks(MapPoint *pMP, float viewingCosLimit, bool bRight) {
