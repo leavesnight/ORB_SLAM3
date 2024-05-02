@@ -2362,7 +2362,7 @@ void Tracking::StereoInitialization()
     {
         if (mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD)
         {
-            if (!mCurrentFrame.mpImuPreintegrated || !mLastFrame.mpImuPreintegrated)
+            if (!mFastInit && (!mCurrentFrame.mpImuPreintegrated || !mLastFrame.mpImuPreintegrated))
             {
                 cout << "not IMU meas" << endl;
                 return;

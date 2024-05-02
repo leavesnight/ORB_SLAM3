@@ -48,6 +48,7 @@ Frame::Frame(): mpcpi(NULL), mpImuPreintegrated(NULL), mpPrevFrame(NULL), mpImuP
     mTimeStereoMatch = 0;
     mTimeORB_Ext = 0;
 #endif
+    mTimeStamp = 0;
 }
 
 
