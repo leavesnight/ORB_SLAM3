@@ -18,6 +18,8 @@
 
 
 #include "Map.h"
+#include "KeyFrame.h"
+#include "MapPoint.h"
 
 #include<mutex>
 
@@ -368,8 +370,8 @@ void Map::PreSave(std::set<GeometricCamera*> &spCams)
         {
             nMPWithoutObs++;
         }
-        map<KeyFrame*, std::tuple<int,int>> mpObs = pMPi->GetObservations();
-        for(map<KeyFrame*, std::tuple<int,int>>::iterator it= mpObs.begin(), end=mpObs.end(); it!=end; ++it)
+        auto mpObs = pMPi->GetObservations();
+        for(auto it= mpObs.begin(), end=mpObs.end(); it!=end; ++it)
         {
             if(it->first->GetMap() != this || it->first->isBad())
             {

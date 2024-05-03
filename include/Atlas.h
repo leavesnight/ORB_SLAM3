@@ -19,7 +19,6 @@
 #ifndef ATLAS_H
 #define ATLAS_H
 
-#include "Map.h"
 #include "MapPoint.h"
 #include "KeyFrame.h"
 #include "GeometricCamera.h"

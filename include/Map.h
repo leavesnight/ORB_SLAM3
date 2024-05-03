@@ -20,15 +20,15 @@
 #ifndef MAP_H
 #define MAP_H
 
-#include "MapPoint.h"
-#include "KeyFrame.h"
-
 #include <set>
 #include <pangolin/pangolin.h>
 #include <mutex>
 
 #include <boost/serialization/base_object.hpp>
 
+#include "CameraModels/GeometricCamera.h"
+#include "ORBVocabulary.h"
+#include "KeyFrameOrder.h"
 
 namespace ORB_SLAM3
 {
@@ -160,7 +160,7 @@ protected:
     long unsigned int mnId;
 
     std::set<MapPoint*> mspMapPoints;
-    std::set<KeyFrame*> mspKeyFrames;
+    std::set<KeyFrame*, KFIdCompare> mspKeyFrames;
 
     // Save/load, the set structure is broken in libboost 1.58 for ubuntu 16.04, a vector is serializated
     std::vector<MapPoint*> mvpBackupMapPoints;

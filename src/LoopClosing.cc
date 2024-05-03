@@ -2069,7 +2069,7 @@ void LoopClosing::CheckObservations(set<KeyFrame*> &spKFsMap1, set<KeyFrame*> &s
     cout << "----------------------" << endl;
     for(KeyFrame* pKFi1 : spKFsMap1)
     {
-        map<KeyFrame*, int> mMatchedMP;
+        map<KeyFrame*, int, KFIdCompare> mMatchedMP;
         set<MapPoint*> spMPs = pKFi1->GetMapPoints();
 
         for(MapPoint* pMPij : spMPs)
@@ -2079,7 +2079,7 @@ void LoopClosing::CheckObservations(set<KeyFrame*> &spKFsMap1, set<KeyFrame*> &s
                 continue;
             }
 
-            map<KeyFrame*, tuple<int,int>> mMPijObs = pMPij->GetObservations();
+            auto mMPijObs = pMPij->GetObservations();
             for(KeyFrame* pKFi2 : spKFsMap2)
             {
                 if(mMPijObs.find(pKFi2) != mMPijObs.end())

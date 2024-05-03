@@ -52,7 +52,7 @@ namespace ORB_SLAM3
             if(!pMP->mbTrackInView && !pMP->mbTrackInViewR)
                 continue;
 
-            if(bFarPoints && pMP->mTrackDepth>thFarPoints)
+            if(bFarPoints && pMP->mTrackDepth>=thFarPoints)
                 continue;
 
             if(pMP->isBad())
