@@ -2752,6 +2752,7 @@ bool Tracking::TrackReferenceKeyFrame()
     vector<MapPoint*> vpMapPointMatches;
 
     int nmatches = matcher.SearchByBoW(mpReferenceKF,mCurrentFrame,vpMapPointMatches);
+  cout << "ref kf math num=" << nmatches << std::endl;
 
     if(nmatches<15)
     {
@@ -2766,7 +2767,8 @@ bool Tracking::TrackReferenceKeyFrame()
 
 
     // cout << " TrackReferenceKeyFrame mLastFrame.mTcw:  " << mLastFrame.mTcw << endl;
-    Optimizer::PoseOptimization(&mCurrentFrame);
+    int num_inliers = Optimizer::PoseOptimization(&mCurrentFrame);
+  cout << "ninliers=" << num_inliers << std::endl;
 
     // Discard outliers
     int nmatchesMap = 0;
@@ -2795,6 +2797,7 @@ bool Tracking::TrackReferenceKeyFrame()
                 nmatchesMap++;
         }
     }
+  cout << "ninliers map=" << nmatchesMap << std::endl;
 
     if (mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD)
         return true;
@@ -2909,6 +2912,7 @@ bool Tracking::TrackWithMotionModel()
 
     int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR || mSensor==System::IMU_MONOCULAR);
 
+  cout << "math num=" << nmatches << std::endl;
     // If few matches, uses a wider window search
     if(nmatches<20)
     {
@@ -2918,6 +2922,7 @@ bool Tracking::TrackWithMotionModel()
         nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR || mSensor==System::IMU_MONOCULAR);
         Verbose::PrintMess("Matches with wider search: " + to_string(nmatches), Verbose::VERBOSITY_NORMAL);
 
+      cout << "math num2=" << nmatches << std::endl;
     }
 
     if(nmatches<20)
@@ -2930,7 +2935,8 @@ bool Tracking::TrackWithMotionModel()
     }
 
     // Optimize frame pose with all matches
-    Optimizer::PoseOptimization(&mCurrentFrame);
+    int num_inliers = Optimizer::PoseOptimization(&mCurrentFrame);
+  cout << "inliers=" << num_inliers << std::endl;
 
     // Discard outliers
     int nmatchesMap = 0;
@@ -2957,6 +2963,7 @@ bool Tracking::TrackWithMotionModel()
                 nmatchesMap++;
         }
     }
+  cout << "check matchinliers=" << nmatchesMap <<", bimu_inited=" << (int)0 << endl;
 
     if(mbOnlyTracking)
     {
@@ -3010,7 +3017,7 @@ bool Tracking::TrackLocalMap()
 
     int inliers;
     if (!mpAtlas->isImuInitialized())
-        Optimizer::PoseOptimization(&mCurrentFrame);
+        inliers = Optimizer::PoseOptimization(&mCurrentFrame);
     else
     {
         if(mCurrentFrame.mnId<=mnLastRelocFrameId+mnFramesToResetIMU)
@@ -3042,6 +3049,7 @@ bool Tracking::TrackLocalMap()
 #endif
         }
     }
+  std::cout << "num_inliers22=" << inliers << endl;
 
     aux1 = 0, aux2 = 0;
     for(int i=0; i<mCurrentFrame.N; i++)
@@ -3074,6 +3082,10 @@ bool Tracking::TrackLocalMap()
                 mCurrentFrame.mvpMapPoints[i] = static_cast<MapPoint*>(NULL);
         }
     }
+  string print_prefix = !mpAtlas->isImuInitialized() ? "inliers_map=" : "inliers_map imu=";
+  std::cout << print_prefix << mnMatchesInliers << std::endl;
+  if (mpAtlas->isImuInitialized() || mCurrentFrame.mTimeStamp > 1520425520.36863)
+    exit(-1);
 
     // Decide if the tracking was succesful
     // More restrictive if there was a relocalization recently
@@ -3377,6 +3389,7 @@ void Tracking::CreateNewKeyFrame()
                     }
 
                     MapPoint* pNewMP = new MapPoint(x3D,pKF,mpAtlas->GetCurrentMap());
+                  std::cout << "mp0[" << pKF->mnId << "," << i << ",id="<< pNewMP->mnId << "]:" <<",pos="<<pNewMP->GetWorldPos().transpose()<< std::endl;
                     pNewMP->AddObservation(pKF,i);
 
                     //Check if it is a stereo observation in order to not
@@ -3410,7 +3423,7 @@ void Tracking::CreateNewKeyFrame()
     }
 
 
-    mpLocalMapper->InsertKeyFrame(pKF);
+//    mpLocalMapper->InsertKeyFrame(pKF);
 
     mpLocalMapper->SetNotStop(false);
 
@@ -3456,12 +3469,15 @@ void Tracking::SearchLocalPoints()
         {
             pMP->IncreaseVisible();
             nToMatch++;
+            cout << ",mpid=" << pMP->mnId << ",pos=" << pMP->GetWorldPos().transpose();
         }
         if(pMP->mbTrackInView)
         {
             mCurrentFrame.mmProjectPoints[pMP->mnId] = cv::Point2f(pMP->mTrackProjX, pMP->mTrackProjY);
         }
     }
+    cout << endl;
+  std::cout << "extra init=" << nToMatch << std::endl;
 
     if(nToMatch>0)
     {
@@ -3489,6 +3505,7 @@ void Tracking::SearchLocalPoints()
             th=15; // 15
 
         int matches = matcher.SearchByProjection(mCurrentFrame, mvpLocalMapPoints, th, mpLocalMapper->mbFarPoints, mpLocalMapper->mThFarPoints);
+      std::cout << "num_matches22=" << matches << endl;
     }
 }
 
@@ -3676,6 +3693,10 @@ void Tracking::UpdateLocalKeyFrames()
                 tempKeyFrame=tempKeyFrame->mPrevKF;
             }
         }
+    }
+    cout << "kfsize=" << mvpLocalKeyFrames.size() << endl;
+    for (int i = 0; i < mvpLocalKeyFrames.size(); ++i) {
+      cout << "kf ftm=" << fixed << setprecision(9) << mvpLocalKeyFrames[i]->mTimeStamp << endl;
     }
 
     if(pKFmax)
