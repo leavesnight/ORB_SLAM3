@@ -25,72 +25,83 @@
 namespace ORB_SLAM3 {
 //BOOST_CLASS_EXPORT_GUID(KannalaBrandt8, "KannalaBrandt8")
 
-    cv::Point2f KannalaBrandt8::project(const cv::Point3f &p3D) {
-        const float x2_plus_y2 = p3D.x * p3D.x + p3D.y * p3D.y;
-        const float theta = atan2f(sqrtf(x2_plus_y2), p3D.z);
-        const float psi = atan2f(p3D.y, p3D.x);
+cv::Point2f KannalaBrandt8::project(const cv::Point3f &p3D) {
+  const float x2_plus_y2 = p3D.x * p3D.x + p3D.y * p3D.y;
+  if (std::sqrt(x2_plus_y2) > 1.e-5) {
+    const float theta = atan2f(sqrtf(x2_plus_y2), p3D.z);
+    const float psi = atan2f(p3D.y, p3D.x);
 
-        const float theta2 = theta * theta;
-        const float theta3 = theta * theta2;
-        const float theta5 = theta3 * theta2;
-        const float theta7 = theta5 * theta2;
-        const float theta9 = theta7 * theta2;
-        const float r = theta + mvParameters[4] * theta3 + mvParameters[5] * theta5
-                        + mvParameters[6] * theta7 + mvParameters[7] * theta9;
+    const float theta2 = theta * theta;
+    const float theta3 = theta * theta2;
+    const float theta5 = theta3 * theta2;
+    const float theta7 = theta5 * theta2;
+    const float theta9 = theta7 * theta2;
+    const float r = theta + mvParameters[4] * theta3 + mvParameters[5] * theta5 + mvParameters[6] * theta7 +
+                    mvParameters[7] * theta9;
 
-        return cv::Point2f(mvParameters[0] * r * cos(psi) + mvParameters[2],
-                           mvParameters[1] * r * sin(psi) + mvParameters[3]);
+    return cv::Point2f(mvParameters[0] * r * cos(psi) + mvParameters[2],
+                       mvParameters[1] * r * sin(psi) + mvParameters[3]);
+  } else {
+    return cv::Point2f(mvParameters[0] * p3D.x / p3D.z + mvParameters[2],
+                       mvParameters[1] * p3D.y / p3D.z + mvParameters[3]);
+  }
+}
 
-    }
+Eigen::Vector2d KannalaBrandt8::project(const Eigen::Vector3d &v3D) {
+  const double x2_plus_y2 = v3D[0] * v3D[0] + v3D[1] * v3D[1];
+  Eigen::Vector2d res;
+  if (std::sqrt(x2_plus_y2) > 1.e-5) {
+    const double theta = atan2f(sqrtf(x2_plus_y2), v3D[2]);
+    const double psi = atan2f(v3D[1], v3D[0]);
 
-    Eigen::Vector2d KannalaBrandt8::project(const Eigen::Vector3d &v3D) {
-        const double x2_plus_y2 = v3D[0] * v3D[0] + v3D[1] * v3D[1];
-        const double theta = atan2f(sqrtf(x2_plus_y2), v3D[2]);
-        const double psi = atan2f(v3D[1], v3D[0]);
+    const double theta2 = theta * theta;
+    const double theta3 = theta * theta2;
+    const double theta5 = theta3 * theta2;
+    const double theta7 = theta5 * theta2;
+    const double theta9 = theta7 * theta2;
+    const double r = theta + mvParameters[4] * theta3 + mvParameters[5] * theta5 + mvParameters[6] * theta7 +
+                     mvParameters[7] * theta9;
 
-        const double theta2 = theta * theta;
-        const double theta3 = theta * theta2;
-        const double theta5 = theta3 * theta2;
-        const double theta7 = theta5 * theta2;
-        const double theta9 = theta7 * theta2;
-        const double r = theta + mvParameters[4] * theta3 + mvParameters[5] * theta5
-                        + mvParameters[6] * theta7 + mvParameters[7] * theta9;
+    res[0] = mvParameters[0] * r * cos(psi) + mvParameters[2];
+    res[1] = mvParameters[1] * r * sin(psi) + mvParameters[3];
+  } else {
+    res[0] = mvParameters[0] * v3D[0] / v3D[2] + mvParameters[2];
+    res[1] = mvParameters[1] * v3D[1] / v3D[2] + mvParameters[3];
+  }
+  return res;
+}
 
-        Eigen::Vector2d res;
-        res[0] = mvParameters[0] * r * cos(psi) + mvParameters[2];
-        res[1] = mvParameters[1] * r * sin(psi) + mvParameters[3];
+Eigen::Vector2f KannalaBrandt8::project(const Eigen::Vector3f &v3D) {
+  const float x2_plus_y2 = v3D[0] * v3D[0] + v3D[1] * v3D[1];
+  Eigen::Vector2f res;
+  if (std::sqrt(x2_plus_y2) > 1.e-5) {
+    const float theta = atan2f(sqrtf(x2_plus_y2), v3D[2]);
+    const float psi = atan2f(v3D[1], v3D[0]);
 
-        return res;
+    const float theta2 = theta * theta;
+    const float theta3 = theta * theta2;
+    const float theta5 = theta3 * theta2;
+    const float theta7 = theta5 * theta2;
+    const float theta9 = theta7 * theta2;
+    const float r = theta + mvParameters[4] * theta3 + mvParameters[5] * theta5 + mvParameters[6] * theta7 +
+                    mvParameters[7] * theta9;
 
-    }
+    res[0] = mvParameters[0] * r * cos(psi) + mvParameters[2];
+    res[1] = mvParameters[1] * r * sin(psi) + mvParameters[3];
+  } else {
+    res[0] = mvParameters[0] * v3D[0] / v3D[2] + mvParameters[2];
+    res[1] = mvParameters[1] * v3D[1] / v3D[2] + mvParameters[3];
+  }
+  return res;
 
-    Eigen::Vector2f KannalaBrandt8::project(const Eigen::Vector3f &v3D) {
-        const float x2_plus_y2 = v3D[0] * v3D[0] + v3D[1] * v3D[1];
-        const float theta = atan2f(sqrtf(x2_plus_y2), v3D[2]);
-        const float psi = atan2f(v3D[1], v3D[0]);
+  /*cv::Point2f cvres = this->project(cv::Point3f(v3D[0],v3D[1],v3D[2]));
 
-        const float theta2 = theta * theta;
-        const float theta3 = theta * theta2;
-        const float theta5 = theta3 * theta2;
-        const float theta7 = theta5 * theta2;
-        const float theta9 = theta7 * theta2;
-        const float r = theta + mvParameters[4] * theta3 + mvParameters[5] * theta5
-                         + mvParameters[6] * theta7 + mvParameters[7] * theta9;
+  Eigen::Vector2d res;
+  res[0] = cvres.x;
+  res[1] = cvres.y;
 
-        Eigen::Vector2f res;
-        res[0] = mvParameters[0] * r * cos(psi) + mvParameters[2];
-        res[1] = mvParameters[1] * r * sin(psi) + mvParameters[3];
-
-        return res;
-
-        /*cv::Point2f cvres = this->project(cv::Point3f(v3D[0],v3D[1],v3D[2]));
-
-        Eigen::Vector2d res;
-        res[0] = cvres.x;
-        res[1] = cvres.y;
-
-        return res;*/
-    }
+  return res;*/
+}
 
     Eigen::Vector2f KannalaBrandt8::projectMat(const cv::Point3f &p3D) {
         cv::Point2f point = this->project(p3D);
@@ -143,9 +154,11 @@ namespace ORB_SLAM3 {
     }
 
     Eigen::Matrix<double, 2, 3> KannalaBrandt8::projectJac(const Eigen::Vector3d &v3D) {
-        double x2 = v3D[0] * v3D[0], y2 = v3D[1] * v3D[1], z2 = v3D[2] * v3D[2];
-        double r2 = x2 + y2;
-        double r = sqrt(r2);
+      double x2 = v3D[0] * v3D[0], y2 = v3D[1] * v3D[1], z2 = v3D[2] * v3D[2];
+      double r2 = x2 + y2;
+      double r = sqrt(r2);
+      Eigen::Matrix<double, 2, 3> JacGood;
+      if (r > 1.e-5) {
         double r3 = r2 * r;
         double theta = atan2(r, v3D[2]);
 
@@ -155,23 +168,27 @@ namespace ORB_SLAM3 {
         double theta8 = theta4 * theta4, theta9 = theta8 * theta;
 
         double f = theta + theta3 * mvParameters[4] + theta5 * mvParameters[5] + theta7 * mvParameters[6] +
-                  theta9 * mvParameters[7];
+                   theta9 * mvParameters[7];
         double fd = 1 + 3 * mvParameters[4] * theta2 + 5 * mvParameters[5] * theta4 + 7 * mvParameters[6] * theta6 +
-                   9 * mvParameters[7] * theta8;
+                    9 * mvParameters[7] * theta8;
 
-        Eigen::Matrix<double, 2, 3> JacGood;
         JacGood(0, 0) = mvParameters[0] * (fd * v3D[2] * x2 / (r2 * (r2 + z2)) + f * y2 / r3);
-        JacGood(1, 0) =
-                mvParameters[1] * (fd * v3D[2] * v3D[1] * v3D[0] / (r2 * (r2 + z2)) - f * v3D[1] * v3D[0] / r3);
+        JacGood(1, 0) = mvParameters[1] * (fd * v3D[2] * v3D[1] * v3D[0] / (r2 * (r2 + z2)) - f * v3D[1] * v3D[0] / r3);
 
-        JacGood(0, 1) =
-                mvParameters[0] * (fd * v3D[2] * v3D[1] * v3D[0] / (r2 * (r2 + z2)) - f * v3D[1] * v3D[0] / r3);
+        JacGood(0, 1) = mvParameters[0] * (fd * v3D[2] * v3D[1] * v3D[0] / (r2 * (r2 + z2)) - f * v3D[1] * v3D[0] / r3);
         JacGood(1, 1) = mvParameters[1] * (fd * v3D[2] * y2 / (r2 * (r2 + z2)) + f * x2 / r3);
 
         JacGood(0, 2) = -mvParameters[0] * fd * v3D[0] / (r2 + z2);
         JacGood(1, 2) = -mvParameters[1] * fd * v3D[1] / (r2 + z2);
-
-        return JacGood;
+      } else {
+        JacGood(0, 0) = mvParameters[0] / v3D[2];
+        JacGood(0, 1) = 0.f;
+        JacGood(0, 2) = -mvParameters[0] * v3D[0] / (v3D[2] * v3D[2]);
+        JacGood(1, 0) = 0.f;
+        JacGood(1, 1) = mvParameters[1] / v3D[2];
+        JacGood(1, 2) = -mvParameters[1] * v3D[1] / (v3D[2] * v3D[2]);
+      }
+      return JacGood;
     }
 
     bool KannalaBrandt8::ReconstructWithTwoViews(const std::vector<cv::KeyPoint>& vKeys1, const std::vector<cv::KeyPoint>& vKeys2, const std::vector<int> &vMatches12,
@@ -402,7 +419,7 @@ namespace ORB_SLAM3 {
         A.row(2) = p2.x*Tcw2.row(2)-Tcw2.row(0);
         A.row(3) = p2.y*Tcw2.row(2)-Tcw2.row(1);
 
-        Eigen::JacobiSVD<Eigen::Matrix4f> svd(A, Eigen::ComputeFullV);
+        Eigen::JacobiSVD<Eigen::Matrix4f> svd(A, Eigen::ComputeThinU | Eigen::ComputeThinV);
         Eigen::Vector4f x3Dh = svd.matrixV().col(3);
         x3D = x3Dh.head(3)/x3Dh(3);
     }
