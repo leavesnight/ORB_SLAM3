@@ -150,7 +150,7 @@ void LocalMapping::Run()
                         if (-1 != mpCurrentKeyFrame->NLeft) ninliers_fe /= 2;
                         bool bLarge = ((ninliers_fe>75)&&mbMonocular)||((ninliers_fe>100)&&!mbMonocular);
                         const bool bRecInit = !mpCurrentKeyFrame->GetMap()->GetIniertialBA2();//false; //
-//                        Optimizer::LocalInertialBA(mpCurrentKeyFrame, &mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA, bLarge, bRecInit);
+                        Optimizer::LocalInertialBA(mpCurrentKeyFrame, &mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA, bLarge, bRecInit);
                         b_doneLBA = true;
                     }
                     else
