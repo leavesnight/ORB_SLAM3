@@ -1030,28 +1030,24 @@ int Optimizer::PoseOptimization(Frame *pFrame)
         optimizer.optimize(its[it]);
 
         nBad=0;
-      stringstream sstr[2];
-      sstr[0]<< "chi2large:";
-      sstr[1]<< "rchi2large:";
         for(size_t i=0, iend=vpEdgesMono.size(); i<iend; i++)
         {
             ORB_SLAM3::EdgeSE3ProjectXYZOnlyPose* e = vpEdgesMono[i];
 
             const size_t idx = vnIndexEdgeMono[i];
 
-            if(1 || pFrame->mvbOutlier[idx])
+            if(pFrame->mvbOutlier[idx])
             {
                 e->computeError();
             }
 
             const float chi2 = e->chi2();
 
-            if(chi2>chi2Mono[it] || !e->isDepthPositive())
+            if(chi2>chi2Mono[it])
             {                
                 pFrame->mvbOutlier[idx]=true;
                 e->setLevel(1);
                 nBad++;
-              sstr[0] << ",chi2=" << chi2 <<",idx=" << idx;
             }
             else
             {
@@ -1069,19 +1065,18 @@ int Optimizer::PoseOptimization(Frame *pFrame)
 
             const size_t idx = vnIndexEdgeRight[i];
 
-            if(1 || pFrame->mvbOutlier[idx])
+            if(pFrame->mvbOutlier[idx])
             {
                 e->computeError();
             }
 
             const float chi2 = e->chi2();
 
-            if(chi2>chi2Mono[it] || !e->isDepthPositive())
+            if(chi2>chi2Mono[it])
             {
                 pFrame->mvbOutlier[idx]=true;
                 e->setLevel(1);
                 nBad++;
-              sstr[1] << ",chi2r=" << chi2 <<",idx=" << idx;
             }
             else
             {
@@ -1121,14 +1116,10 @@ int Optimizer::PoseOptimization(Frame *pFrame)
             if(it==2)
                 e->setRobustKernel(0);
         }
-      std::cout <<sstr[0].str()<< std::endl;
-      std::cout <<sstr[1].str()<< std::endl;
-      std::cout<< nBad << std::endl;
 
         if(optimizer.edges().size()<10)
             break;
-    }
-  std::cout << "nini=" << nInitialCorrespondences <<",nbad=" <<nBad<< std::endl;
+    }    
 
     // Recover optimized pose and return number of inliers
     g2o::VertexSE3Expmap* vSE3_recov = static_cast<g2o::VertexSE3Expmap*>(optimizer.vertex(0));

@@ -125,7 +125,6 @@ namespace ORB_SLAM3
                         if(bestLevel==bestLevel2 && bestDist>mfNNratio*bestDist2)
                             continue;
 
-                      std::cout << "bestdist=" << bestDist << ",bestidx=" << bestIdx << "," << pMP->mnId << " " <<",NL="<<F.Nleft<< std::endl;
                         if(bestLevel!=bestLevel2 || bestDist<=mfNNratio*bestDist2){
                             F.mvpMapPoints[bestIdx]=pMP;
 
@@ -219,7 +218,6 @@ namespace ORB_SLAM3
                 }
             }
         }
-        std::cout << "l/r=" << left << "/" << right << std::endl;
         return nmatches;
     }
 
