@@ -203,7 +203,7 @@ void ImuCamPose::Update(const double *pu)
     its++;
     if(its>=3)
     {
-        NormalizeRotation(Rwb);
+        Rwb = NormalizeRotation(Rwb);
         its=0;
     }
 
@@ -240,7 +240,7 @@ void ImuCamPose::UpdateW(const double *pu)
         DR(1,2) = 0.0;
         DR(2,0) = 0.0;
         DR(2,1) = 0.0;
-        NormalizeRotation(DR);
+        DR = NormalizeRotation(DR);
         its = 0;
     }
 
