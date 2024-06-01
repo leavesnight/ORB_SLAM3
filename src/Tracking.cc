@@ -3074,6 +3074,10 @@ bool Tracking::TrackLocalMap()
                 mCurrentFrame.mvpMapPoints[i] = static_cast<MapPoint*>(NULL);
         }
     }
+    {
+      unique_lock<std::mutex> lock(mutex_inliers);
+      inliers_for_lba = mnMatchesInliers;
+    }
 
     // Decide if the tracking was succesful
     // More restrictive if there was a relocalization recently
@@ -3350,7 +3354,7 @@ void Tracking::CreateNewKeyFrame()
                 // MapPoint* pMP = mCurrentFrame.mvpMapPoints[i];
                 // if(!pMP)
                 //     bCreateNew = true;
-                // else if(pMP->Observations()<1)
+                // else if(pMP->Observations()<1 || pMP->isBad())
                 // {
                 //     bCreateNew = true;
                 //     mCurrentFrame.mvpMapPoints[i] = static_cast<MapPoint*>(NULL);
@@ -4141,7 +4145,8 @@ int Tracking::GetNumberDataset()
 
 int Tracking::GetMatchesInliers()
 {
-    return mnMatchesInliers;
+  unique_lock<std::mutex> lock(mutex_inliers);
+    return inliers_for_lba;
 }
 
 void Tracking::SaveSubTrajectory(string strNameFile_frames, string strNameFile_kf, string strFolder)

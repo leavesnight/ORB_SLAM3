@@ -1234,6 +1234,7 @@ namespace ORB_SLAM3
                         const cv::KeyPoint &kp2 = (pKF2 -> NLeft == -1) ? pKF2->mvKeysUn[bestIdx2]
                                                                         : (bestIdx2 < pKF2 -> NLeft) ? pKF2 -> mvKeys[bestIdx2]
                                                                                                      : pKF2 -> mvKeysRight[bestIdx2 - pKF2 -> NLeft];
+                        vbMatched2[bestIdx2]=true;
                         vMatches12[idx1]=bestIdx2;
                         nmatches++;
 

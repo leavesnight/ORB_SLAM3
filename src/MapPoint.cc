@@ -153,6 +153,7 @@ void MapPoint::AddObservation(KeyFrame* pKF, int idx)
         indexes = tuple<int,int>(-1,-1);
     }
 
+  assert(idx != get<1>(indexes) && idx != get<0>(indexes));
     if(pKF -> NLeft != -1 && idx >= pKF -> NLeft){
       if (get<1>(indexes) != -1) return;
         get<1>(indexes) = idx;
@@ -193,7 +194,7 @@ void MapPoint::EraseObservation(KeyFrame* pKF)
             mObservations.erase(pKF);
 
             // If only 2 observations or less, discard point
-            if(nObs<=2 || mObservations.empty())
+            if(nObs<=2) //|| mObservations.empty())
                 bBad=true;
             else if (mpRefKF == pKF) {
               // assert(!mObservations.empty());

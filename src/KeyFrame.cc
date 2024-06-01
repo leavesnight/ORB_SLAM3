@@ -298,6 +298,8 @@ int KeyFrame::GetNumberMPs()
 void KeyFrame::AddMapPoint(MapPoint *pMP, const size_t &idx)
 {
     unique_lock<mutex> lock(mMutexFeatures);
+  assert(mvpMapPoints.size() > idx);
+  assert(!mvpMapPoints[idx] || mvpMapPoints[idx]->isBad() || mvpMapPoints[idx]->Observations() < 1);
     mvpMapPoints[idx]=pMP;
 }
 

@@ -317,6 +317,8 @@ protected:
 
     //Current matches in frame
     int mnMatchesInliers;
+    std::mutex mutex_inliers;
+    int inliers_for_lba = 0;
 
     //Last Frame, KeyFrame and Relocalisation Info
     KeyFrame* mpLastKeyFrame;
