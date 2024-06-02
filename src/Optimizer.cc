@@ -5195,7 +5195,7 @@ int Optimizer::PoseInertialOptimizationLastFrame(Frame *pFrame, bool bRecInit)
     ep->setVertex(3,VAk);
     g2o::RobustKernelHuber* rkp = new g2o::RobustKernelHuber;
     ep->setRobustKernel(rkp);
-    rkp->setDelta(5);
+    rkp->setDelta(24.996);
     optimizer.addEdge(ep);
 
     // We perform 4 optimizations, after each optimization we classify observation as inlier/outlier
@@ -5338,6 +5338,39 @@ int Optimizer::PoseInertialOptimizationLastFrame(Frame *pFrame, bool bRecInit)
     Eigen::Matrix<double,30,30> H;
     H.setZero();
 
+  int tot_in = 0, tot_out = 0;
+  for(size_t i=0, iend=vpEdgesMono.size(); i<iend; i++)
+  {
+    EdgeMonoOnlyPose* e = vpEdgesMono[i];
+
+    const size_t idx = vnIndexEdgeMono[i];
+
+    if(!pFrame->mvbOutlier[idx])
+    {
+      H.block<6,6>(15,15) += e->GetHessian();
+      tot_in++;
+    }
+    else
+      tot_out++;
+  }
+
+  for(size_t i=0, iend=vpEdgesStereo.size(); i<iend; i++)
+  {
+    EdgeStereoOnlyPose* e = vpEdgesStereo[i];
+
+    const size_t idx = vnIndexEdgeStereo[i];
+
+    if(!pFrame->mvbOutlier[idx])
+    {
+      H.block<6,6>(15,15) += e->GetHessian();
+      tot_in++;
+    }
+    else
+      tot_out++;
+  }
+
+  H.block<15,15>(0,0) += ep->GetHessian();
+
     H.block<24,24>(0,0)+= ei->GetHessian();
 
     Eigen::Matrix<double,6,6> Hgr = egr->GetHessian();
@@ -5351,39 +5384,6 @@ int Optimizer::PoseInertialOptimizationLastFrame(Frame *pFrame, bool bRecInit)
     H.block<3,3>(12,27) += Har.block<3,3>(0,3);
     H.block<3,3>(27,12) += Har.block<3,3>(3,0);
     H.block<3,3>(27,27) += Har.block<3,3>(3,3);
-
-    H.block<15,15>(0,0) += ep->GetHessian();
-
-    int tot_in = 0, tot_out = 0;
-    for(size_t i=0, iend=vpEdgesMono.size(); i<iend; i++)
-    {
-        EdgeMonoOnlyPose* e = vpEdgesMono[i];
-
-        const size_t idx = vnIndexEdgeMono[i];
-
-        if(!pFrame->mvbOutlier[idx])
-        {
-            H.block<6,6>(15,15) += e->GetHessian();
-            tot_in++;
-        }
-        else
-            tot_out++;
-    }
-
-    for(size_t i=0, iend=vpEdgesStereo.size(); i<iend; i++)
-    {
-        EdgeStereoOnlyPose* e = vpEdgesStereo[i];
-
-        const size_t idx = vnIndexEdgeStereo[i];
-
-        if(!pFrame->mvbOutlier[idx])
-        {
-            H.block<6,6>(15,15) += e->GetHessian();
-            tot_in++;
-        }
-        else
-            tot_out++;
-    }
 
     H = Marginalize(H,0,14);
 
