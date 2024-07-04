@@ -105,7 +105,7 @@ void LocalMapping::Run()
             if(!CheckNewKeyFrames())
             {
                 // Find more matches in neighbor keyframes and fuse point duplications
-                SearchInNeighbors();
+//                SearchInNeighbors();
             }
 
 #ifdef REGISTER_TIMES
