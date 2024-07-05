@@ -89,7 +89,7 @@ void LocalMapping::Run()
 #endif
 
             // Check recent MapPoints
-            MapPointCulling();
+//            MapPointCulling();
 #ifdef REGISTER_TIMES
             std::chrono::steady_clock::time_point time_EndMPCulling = std::chrono::steady_clock::now();
 
@@ -148,8 +148,8 @@ void LocalMapping::Run()
 
                         auto ninliers_fe = mpTracker->GetMatchesInliers();
                         if (-1 != mpCurrentKeyFrame->NLeft) ninliers_fe /= 2;
-                        bool bLarge = ((ninliers_fe>75)&&mbMonocular)||((ninliers_fe>100)&&!mbMonocular);
-                        const bool bRecInit = !mpCurrentKeyFrame->GetMap()->GetIniertialBA2();//false; //
+                        bool bLarge = false;//((ninliers_fe>75)&&mbMonocular)||((ninliers_fe>100)&&!mbMonocular);
+                        const bool bRecInit = false;//!mpCurrentKeyFrame->GetMap()->GetIniertialBA2();//false; //
                         Optimizer::LocalInertialBA(mpCurrentKeyFrame, &mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA, bLarge, bRecInit);
                         b_doneLBA = true;
                     }
@@ -192,7 +192,7 @@ void LocalMapping::Run()
 
 
                 // Check redundant local Keyframes
-                KeyFrameCulling();
+//                KeyFrameCulling();
 
 #ifdef REGISTER_TIMES
                 std::chrono::steady_clock::time_point time_EndKFCulling = std::chrono::steady_clock::now();
@@ -917,7 +917,7 @@ void LocalMapping::KeyFrameCulling()
     // in at least other 3 keyframes (in the same or finer scale)
     // We only consider close stereo points
     const int Nd = 21;
-    mpCurrentKeyFrame->UpdateBestCovisibles();
+//    mpCurrentKeyFrame->UpdateBestCovisibles();
     vector<KeyFrame*> vpLocalKeyFrames = mpCurrentKeyFrame->GetVectorCovisibleKeyFrames();
 
     float redundant_th = 0.9;
