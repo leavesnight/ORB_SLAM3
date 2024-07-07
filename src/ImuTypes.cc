@@ -115,7 +115,7 @@ Preintegrated::Preintegrated(const Bias &b_, const Calib &calib)
 Preintegrated::Preintegrated(Preintegrated* pImuPre): dT(pImuPre->dT),C(pImuPre->C), Info(pImuPre->Info),
      Nga(pImuPre->Nga), NgaWalk(pImuPre->NgaWalk), b(pImuPre->b), dR(pImuPre->dR), dV(pImuPre->dV),
     dP(pImuPre->dP), JRg(pImuPre->JRg), JVg(pImuPre->JVg), JVa(pImuPre->JVa), JPg(pImuPre->JPg), JPa(pImuPre->JPa),
-    avgA(pImuPre->avgA), avgW(pImuPre->avgW), bu(pImuPre->bu), db(pImuPre->db), mvMeasurements(pImuPre->mvMeasurements)
+    avgA(pImuPre->avgA), avgW(pImuPre->avgW), bu(pImuPre->bu), mvMeasurements(pImuPre->mvMeasurements)
 {
 
 }
@@ -139,7 +139,6 @@ void Preintegrated::CopyFrom(Preintegrated* pImuPre)
     avgA = pImuPre->avgA;
     avgW = pImuPre->avgW;
     bu.CopyFrom(pImuPre->bu);
-    db = pImuPre->db;
     mvMeasurements = pImuPre->mvMeasurements;
 }
 
@@ -156,7 +155,6 @@ void Preintegrated::Initialize(const Bias &b_)
     JPa.setZero();
     C.setZero();
     Info.setZero();
-    db.setZero();
     b=b_;
     bu=b_;
     avgA.setZero();
@@ -217,7 +215,7 @@ void Preintegrated::IntegrateNewMeasurement(const Eigen::Vector3f &acceleration,
 
     // Update delta rotation
     IntegratedRotation dRi(angVel,b,dt);
-    dR = NormalizeRotation(dR*dRi.deltaR);
+    dR = (Sophus::SO3exd(dR.cast<double>()) * Sophus::SO3exd(dRi.deltaR.cast<double>())).matrix().cast<float>();//NormalizeRotation(dR*dRi.deltaR);
 
     // Compute rotation parts of matrices A and B
     A.block<3,3>(0,0) = dRi.deltaR.transpose();
@@ -264,13 +262,6 @@ void Preintegrated::SetNewBias(const Bias &bu_)
 {
     std::unique_lock<std::mutex> lock(mMutex);
     bu = bu_;
-
-    db(0) = bu_.bwx-b.bwx;
-    db(1) = bu_.bwy-b.bwy;
-    db(2) = bu_.bwz-b.bwz;
-    db(3) = bu_.bax-b.bax;
-    db(4) = bu_.bay-b.bay;
-    db(5) = bu_.baz-b.baz;
 }
 
 IMU::Bias Preintegrated::GetDeltaBias(const Bias &b_)
@@ -304,58 +295,6 @@ Eigen::Vector3f Preintegrated::GetDeltaPosition(const Bias &b_)
     dbg << b_.bwx-b.bwx,b_.bwy-b.bwy,b_.bwz-b.bwz;
     dba << b_.bax-b.bax,b_.bay-b.bay,b_.baz-b.baz;
     return dP + JPg * dbg + JPa * dba;
-}
-
-Eigen::Matrix3f Preintegrated::GetUpdatedDeltaRotation()
-{
-    std::unique_lock<std::mutex> lock(mMutex);
-    return NormalizeRotation(dR * Sophus::SO3f::exp(JRg*db.head(3)).matrix());
-}
-
-Eigen::Vector3f Preintegrated::GetUpdatedDeltaVelocity()
-{
-    std::unique_lock<std::mutex> lock(mMutex);
-    return dV + JVg * db.head(3) + JVa * db.tail(3);
-}
-
-Eigen::Vector3f Preintegrated::GetUpdatedDeltaPosition()
-{
-    std::unique_lock<std::mutex> lock(mMutex);
-    return dP + JPg*db.head(3) + JPa*db.tail(3);
-}
-
-Eigen::Matrix3f Preintegrated::GetOriginalDeltaRotation() {
-    std::unique_lock<std::mutex> lock(mMutex);
-    return dR;
-}
-
-Eigen::Vector3f Preintegrated::GetOriginalDeltaVelocity() {
-    std::unique_lock<std::mutex> lock(mMutex);
-    return dV;
-}
-
-Eigen::Vector3f Preintegrated::GetOriginalDeltaPosition()
-{
-    std::unique_lock<std::mutex> lock(mMutex);
-    return dP;
-}
-
-Bias Preintegrated::GetOriginalBias()
-{
-    std::unique_lock<std::mutex> lock(mMutex);
-    return b;
-}
-
-Bias Preintegrated::GetUpdatedBias()
-{
-    std::unique_lock<std::mutex> lock(mMutex);
-    return bu;
-}
-
-Eigen::Matrix<float,6,1> Preintegrated::GetDeltaBias()
-{
-    std::unique_lock<std::mutex> lock(mMutex);
-    return db;
 }
 
 void Bias::CopyFrom(Bias &b)

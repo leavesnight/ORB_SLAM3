@@ -1776,12 +1776,15 @@ bool Tracking::PredictStateIMU()
         const Eigen::Vector3f Gz(0, 0, -IMU::GRAVITY_VALUE);
         const float t12 = mpImuPreintegratedFromLastKF->dT;
 
-        Eigen::Matrix3f Rwb2 = IMU::NormalizeRotation(Rwb1 * mpImuPreintegratedFromLastKF->GetDeltaRotation(mpLastKeyFrame->GetImuBias()));
-        Eigen::Vector3f twb2 = twb1 + Vwb1*t12 + 0.5f*t12*t12*Gz+ Rwb1*mpImuPreintegratedFromLastKF->GetDeltaPosition(mpLastKeyFrame->GetImuBias());
-        Eigen::Vector3f Vwb2 = Vwb1 + t12*Gz + Rwb1 * mpImuPreintegratedFromLastKF->GetDeltaVelocity(mpLastKeyFrame->GetImuBias());
+        auto imubias = mpLastKeyFrame->GetImuBias();
+      Sophus::SO3exd Rso3 = Sophus::SO3exd(Rwb1.cast<double>()) * Sophus::SO3exd(mpImuPreintegratedFromLastKF->GetDeltaRotation(imubias).cast<double>());
+        Eigen::Matrix3f Rwb2 = Rso3.matrix().cast<float>();
+        //IMU::NormalizeRotation(Rwb1 * mpImuPreintegratedFromLastKF->GetDeltaRotation(imubias));
+        Eigen::Vector3f twb2 = twb1 + Vwb1*t12 + 0.5f*t12*t12*Gz+ Rwb1*mpImuPreintegratedFromLastKF->GetDeltaPosition(imubias);
+        Eigen::Vector3f Vwb2 = Vwb1 + t12*Gz + Rwb1 * mpImuPreintegratedFromLastKF->GetDeltaVelocity(imubias);
         mCurrentFrame.SetImuPoseVelocity(Rwb2,twb2,Vwb2);
 
-        mCurrentFrame.mImuBias = mpLastKeyFrame->GetImuBias();
+        mCurrentFrame.mImuBias = imubias;
         mCurrentFrame.mPredBias = mCurrentFrame.mImuBias;
         return true;
     }
@@ -1793,13 +1796,16 @@ bool Tracking::PredictStateIMU()
         const Eigen::Vector3f Gz(0, 0, -IMU::GRAVITY_VALUE);
         const float t12 = mCurrentFrame.mpImuPreintegratedFrame->dT;
 
-        Eigen::Matrix3f Rwb2 = IMU::NormalizeRotation(Rwb1 * mCurrentFrame.mpImuPreintegratedFrame->GetDeltaRotation(mLastFrame.mImuBias));
-        Eigen::Vector3f twb2 = twb1 + Vwb1*t12 + 0.5f*t12*t12*Gz+ Rwb1 * mCurrentFrame.mpImuPreintegratedFrame->GetDeltaPosition(mLastFrame.mImuBias);
-        Eigen::Vector3f Vwb2 = Vwb1 + t12*Gz + Rwb1 * mCurrentFrame.mpImuPreintegratedFrame->GetDeltaVelocity(mLastFrame.mImuBias);
+      auto imubias = mLastFrame.mImuBias;
+      Sophus::SO3exd Rso3 = Sophus::SO3exd(Rwb1.cast<double>()) * Sophus::SO3exd(mCurrentFrame.mpImuPreintegratedFrame->GetDeltaRotation(imubias).cast<double>());
+      Eigen::Matrix3f Rwb2 = Rso3.matrix().cast<float>();
+        //IMU::NormalizeRotation(Rwb1 * mCurrentFrame.mpImuPreintegratedFrame->GetDeltaRotation(imubias));
+        Eigen::Vector3f twb2 = twb1 + Vwb1*t12 + 0.5f*t12*t12*Gz+ Rwb1 * mCurrentFrame.mpImuPreintegratedFrame->GetDeltaPosition(imubias);
+        Eigen::Vector3f Vwb2 = Vwb1 + t12*Gz + Rwb1 * mCurrentFrame.mpImuPreintegratedFrame->GetDeltaVelocity(imubias);
 
         mCurrentFrame.SetImuPoseVelocity(Rwb2,twb2,Vwb2);
 
-        mCurrentFrame.mImuBias = mLastFrame.mImuBias;
+        mCurrentFrame.mImuBias = imubias;
         mCurrentFrame.mPredBias = mCurrentFrame.mImuBias;
         return true;
     }
@@ -2640,7 +2646,7 @@ void Tracking::CreateInitialMapMonocular()
         pKFini->mNextKF = pKFcur;
         pKFcur->mpImuPreintegrated = mpImuPreintegratedFromLastKF;
 
-        mpImuPreintegratedFromLastKF = new IMU::Preintegrated(pKFcur->mpImuPreintegrated->GetUpdatedBias(),pKFcur->mImuCalib);
+        mpImuPreintegratedFromLastKF = new IMU::Preintegrated(pKFcur->GetImuBias(),pKFcur->mImuCalib);//pKFcur->mpImuPreintegrated->GetUpdatedBias(),pKFcur->mImuCalib);
     }
 
 
@@ -4111,9 +4117,15 @@ void Tracking::UpdateFrameIMU(const float s, const IMU::Bias &b, KeyFrame* pCurr
         const Eigen::Vector3f Vwb1 = mLastFrame.mpLastKeyFrame->GetVelocity();
         float t12 = mLastFrame.mpImuPreintegrated->dT;
 
-        mLastFrame.SetImuPoseVelocity(IMU::NormalizeRotation(Rwb1*mLastFrame.mpImuPreintegrated->GetUpdatedDeltaRotation()),
-                                      twb1 + Vwb1*t12 + 0.5f*t12*t12*Gz+ Rwb1*mLastFrame.mpImuPreintegrated->GetUpdatedDeltaPosition(),
-                                      Vwb1 + Gz*t12 + Rwb1*mLastFrame.mpImuPreintegrated->GetUpdatedDeltaVelocity());
+      auto imubias = mLastFrame.mpLastKeyFrame->GetImuBias();
+      Sophus::SO3exd Rso3 = Sophus::SO3exd(Rwb1.cast<double>()) * Sophus::SO3exd(mLastFrame.mpImuPreintegrated->GetDeltaRotation(imubias).cast<double>());
+      Eigen::Matrix3f Rwb2 = Rso3.matrix().cast<float>();
+      //IMU::NormalizeRotation(Rwb1*mLastFrame.mpImuPreintegrated->GetUpdatedDeltaRotation()),
+      Eigen::Vector3f twb2 = twb1 + Vwb1*t12 + 0.5f*t12*t12*Gz+ Rwb1*mLastFrame.mpImuPreintegrated->GetDeltaPosition(imubias);//GetUpdatedDeltaPosition();
+      Eigen::Vector3f Vwb2 = Vwb1 + Gz*t12 + Rwb1*mLastFrame.mpImuPreintegrated->GetDeltaVelocity(imubias);//GetUpdatedDeltaVelocity();
+        mLastFrame.SetImuPoseVelocity(Rwb2,
+                                      twb2,
+                                      Vwb2);
     }
 
     if (mCurrentFrame.mpImuPreintegrated)
@@ -4125,9 +4137,15 @@ void Tracking::UpdateFrameIMU(const float s, const IMU::Bias &b, KeyFrame* pCurr
         const Eigen::Vector3f Vwb1 = mCurrentFrame.mpLastKeyFrame->GetVelocity();
         float t12 = mCurrentFrame.mpImuPreintegrated->dT;
 
-        mCurrentFrame.SetImuPoseVelocity(IMU::NormalizeRotation(Rwb1*mCurrentFrame.mpImuPreintegrated->GetUpdatedDeltaRotation()),
-                                      twb1 + Vwb1*t12 + 0.5f*t12*t12*Gz+ Rwb1*mCurrentFrame.mpImuPreintegrated->GetUpdatedDeltaPosition(),
-                                      Vwb1 + Gz*t12 + Rwb1*mCurrentFrame.mpImuPreintegrated->GetUpdatedDeltaVelocity());
+      auto imubias = mLastFrame.mpLastKeyFrame->GetImuBias();
+      Sophus::SO3exd Rso3 = Sophus::SO3exd(Rwb1.cast<double>()) * Sophus::SO3exd(mCurrentFrame.mpImuPreintegrated->GetDeltaRotation(imubias).cast<double>());
+      Eigen::Matrix3f Rwb2 = Rso3.matrix().cast<float>();
+      //IMU::NormalizeRotation(Rwb1*mCurrentFrame.mpImuPreintegrated->GetUpdatedDeltaRotation())
+      Eigen::Vector3f twb2 = twb1 + Vwb1*t12 + 0.5f*t12*t12*Gz+ Rwb1*mCurrentFrame.mpImuPreintegrated->GetDeltaPosition(imubias);//GetUpdatedDeltaPosition()
+      Eigen::Vector3f Vwb2 = Vwb1 + Gz*t12 + Rwb1*mCurrentFrame.mpImuPreintegrated->GetDeltaVelocity(imubias);//GetUpdatedDeltaVelocity();
+      mCurrentFrame.SetImuPoseVelocity(Rwb2,
+                                    twb2,
+                                    Vwb2);
     }
 
     mnFirstImuFrameId = mCurrentFrame.mnId;

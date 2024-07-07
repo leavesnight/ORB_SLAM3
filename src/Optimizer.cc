@@ -3298,8 +3298,8 @@ void Optimizer::InertialOptimization(Map *pMap, Eigen::Matrix3d &Rwg, double &sc
         if ((pKFi->GetGyroBias() - bg.cast<float>()).norm() > 0.01)
         {
             pKFi->SetNewBias(b);
-            if (pKFi->mpImuPreintegrated)
-                pKFi->mpImuPreintegrated->Reintegrate();
+//            if (pKFi->mpImuPreintegrated)
+//                pKFi->mpImuPreintegrated->Reintegrate();
         }
         else
             pKFi->SetNewBias(b);
@@ -3463,8 +3463,8 @@ void Optimizer::InertialOptimization(Map *pMap, Eigen::Vector3d &bg, Eigen::Vect
         if ((pKFi->GetGyroBias() - bg.cast<float>()).norm() > 0.01)
         {
             pKFi->SetNewBias(b);
-            if (pKFi->mpImuPreintegrated)
-                pKFi->mpImuPreintegrated->Reintegrate();
+//            if (pKFi->mpImuPreintegrated)
+//                pKFi->mpImuPreintegrated->Reintegrate();
         }
         else
             pKFi->SetNewBias(b);

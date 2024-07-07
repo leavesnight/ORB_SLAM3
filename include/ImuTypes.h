@@ -168,7 +168,6 @@ class Preintegrated
         ar & boost::serialization::make_array(avgW.data(), avgW.size());
 
         ar & bu;
-        ar & boost::serialization::make_array(db.data(), db.size());
         ar & mvMeasurements;
     }
 
@@ -189,19 +188,6 @@ public:
     Eigen::Matrix3f GetDeltaRotation(const Bias &b_);
     Eigen::Vector3f GetDeltaVelocity(const Bias &b_);
     Eigen::Vector3f GetDeltaPosition(const Bias &b_);
-
-    Eigen::Matrix3f GetUpdatedDeltaRotation();
-    Eigen::Vector3f GetUpdatedDeltaVelocity();
-    Eigen::Vector3f GetUpdatedDeltaPosition();
-
-    Eigen::Matrix3f GetOriginalDeltaRotation();
-    Eigen::Vector3f GetOriginalDeltaVelocity();
-    Eigen::Vector3f GetOriginalDeltaPosition();
-
-    Eigen::Matrix<float,6,1> GetDeltaBias();
-
-    Bias GetOriginalBias();
-    Bias GetUpdatedBias();
 
     void printMeasurements() const {
         std::cout << "pint meas:\n";
@@ -228,9 +214,6 @@ public:
 private:
     // Updated bias
     Bias bu;
-    // Dif between original and updated bias
-    // This is used to compute the updated values of the preintegration
-    Eigen::Matrix<float,6,1> db;
 
     struct integrable
     {
