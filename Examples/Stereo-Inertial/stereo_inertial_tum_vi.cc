@@ -186,14 +186,26 @@ int main(int argc, char **argv)
             {
                 // cout << "t_cam " << tframe << endl;
 
+                auto last_imu_tm = vTimestampsImu[seq][first_imu[seq]];
                 while(vTimestampsImu[seq][first_imu[seq]]<=vTimestampsCam[seq][ni])
                 {
                     // vImuMeas.push_back(ORB_SLAM3::IMU::Point(vAcc[first_imu],vGyro[first_imu],vTimestampsImu[first_imu]));
                     vImuMeas.push_back(ORB_SLAM3::IMU::Point(vAcc[seq][first_imu[seq]].x,vAcc[seq][first_imu[seq]].y,vAcc[seq][first_imu[seq]].z,
                                                              vGyro[seq][first_imu[seq]].x,vGyro[seq][first_imu[seq]].y,vGyro[seq][first_imu[seq]].z,
                                                              vTimestampsImu[seq][first_imu[seq]]));
+                  last_imu_tm = vTimestampsImu[seq][first_imu[seq]];
                     // cout << "t_imu = " << fixed << vImuMeas.back().t << endl;
                     first_imu[seq]++;
+                }
+                if (first_imu[seq] < vTimestampsImu[seq].size()) {
+                  if (last_imu_tm < vTimestampsCam[seq][ni]) {
+                    vImuMeas.push_back(ORB_SLAM3::IMU::Point(vAcc[seq][first_imu[seq]].x, vAcc[seq][first_imu[seq]].y,
+                                                             vAcc[seq][first_imu[seq]].z, vGyro[seq][first_imu[seq]].x,
+                                                             vGyro[seq][first_imu[seq]].y, vGyro[seq][first_imu[seq]].z,
+                                                             vTimestampsImu[seq][first_imu[seq]]));
+                  }
+                  if ((vTimestampsImu[seq][first_imu[seq]] > vTimestampsCam[seq][ni]) && first_imu[seq] > 0)
+                    --first_imu[seq];
                 }
             }
 

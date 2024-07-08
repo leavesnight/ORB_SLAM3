@@ -1664,6 +1664,8 @@ void Tracking::PreintegrateIMU()
         return;
     }
 
+    double last_imu_tm = -1;
+    int start_id = 0;
     while(true)
     {
         bool bSleep = false;
@@ -1672,9 +1674,16 @@ void Tracking::PreintegrateIMU()
             if(!mlQueueImuData.empty())
             {
                 IMU::Point* m = &mlQueueImuData.front();
+                if (last_imu_tm != -1 && m->t == last_imu_tm) {
+                  mlQueueImuData.pop_front();
+                  continue;
+                }
+                last_imu_tm = m->t;
                 cout.precision(17);
                 if(m->t<mCurrentFrame.mpPrevFrame->mTimeStamp-mImuPer)
                 {
+                  mvImuFromLastFrame.push_back(*m);
+                  if (mvImuFromLastFrame.size() > 1) start_id = mvImuFromLastFrame.size() - 1;
                     mlQueueImuData.pop_front();
                 }
                 else if(m->t<mCurrentFrame.mTimeStamp-mImuPer)
@@ -1697,6 +1706,7 @@ void Tracking::PreintegrateIMU()
         if(bSleep)
             usleep(500);
     }
+    mvImuFromLastFrame.erase(mvImuFromLastFrame.begin(), mvImuFromLastFrame.begin() + start_id);
 
     const int n = mvImuFromLastFrame.size()-1;
     if(n==0){
