@@ -1353,7 +1353,7 @@ namespace ORB_SLAM3
             Eigen::Vector3f p3Dc = Tcw * p3Dw;
 
             // Depth must be positive
-            if(p3Dc(2)<0.0f)
+            if(p3Dc(2)<=0.0f)
             {
                 count_negdepth++;
                 continue;
@@ -1465,22 +1465,20 @@ namespace ORB_SLAM3
             // If there is already a MapPoint replace otherwise add new measurement
             if(bestDist<=TH_LOW)
             {
-                MapPoint* pMPinKF = pKF->GetMapPoint(bestIdx);
-                if(pMPinKF)
-                {
-                    if(!pMPinKF->isBad())
-                    {
-                        if(pMPinKF->Observations()>pMP->Observations())
-                            pMP->Replace(pMPinKF);
-                        else
-                            pMPinKF->Replace(pMP);
-                    }
+              if (pMP && !pMP->isBad()) {
+                MapPoint *pMPinKF = pKF->GetMapPoint(bestIdx);
+                if (pMPinKF) {
+                  if (!pMPinKF->isBad()) {
+                    if (pMPinKF->Observations() > pMP->Observations())
+                      pMP->Replace(pMPinKF);
+                    else
+                      pMPinKF->Replace(pMP);
+                  }
+                } else {
+                  pMP->AddObservation(pKF, bestIdx);
+                  pKF->AddMapPoint(pMP, bestIdx);
                 }
-                else
-                {
-                    pMP->AddObservation(pKF,bestIdx);
-                    pKF->AddMapPoint(pMP,bestIdx);
-                }
+              }
                 nFused++;
             }
             else

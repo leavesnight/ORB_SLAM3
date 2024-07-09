@@ -263,6 +263,7 @@ void MapPoint::Replace(MapPoint* pMP)
     {
         unique_lock<mutex> lock1(mMutexFeatures);
         unique_lock<mutex> lock2(mMutexPos);
+        if (pMP->isBad()) return;
         obs=mObservations;
         mObservations.clear();
         mbBad=true;
@@ -299,6 +300,32 @@ void MapPoint::Replace(MapPoint* pMP)
                 pKF->EraseMapPointMatch(rightIndex);
             }
         }
+//      if(!pMP->IsInKeyFrame(pKF, -1, 0))
+//      {
+//        if(leftIndex != -1){
+//          pKF->ReplaceMapPointMatch(leftIndex, pMP);
+//          pMP->AddObservation(pKF,leftIndex);
+//        }
+//      }
+//      else
+//      {
+//        if(leftIndex != -1){
+//          pKF->EraseMapPointMatch(leftIndex);
+//        }
+//      }
+//      if(!pMP->IsInKeyFrame(pKF, -1, 1))
+//      {
+//        if(rightIndex != -1){
+//          pKF->ReplaceMapPointMatch(rightIndex, pMP);
+//          pMP->AddObservation(pKF,rightIndex);
+//        }
+//      }
+//      else
+//      {
+//        if(rightIndex != -1){
+//          pKF->EraseMapPointMatch(rightIndex);
+//        }
+//      }
     }
     pMP->IncreaseFound(nfound);
     pMP->IncreaseVisible(nvisible);

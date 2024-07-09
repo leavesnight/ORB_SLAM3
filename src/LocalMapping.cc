@@ -746,7 +746,7 @@ void LocalMapping::SearchInNeighbors()
             pKFi2->mnFuseTargetForKF=mpCurrentKeyFrame->mnId;
         }
         if (mbAbortBA)
-            break;
+          break; // return;  //
     }
 
     // Extend to temporal neighbors
