@@ -321,7 +321,7 @@ Eigen::Vector2f KannalaBrandt8::project(const Eigen::Vector3f &v3D) {
     }
 
     float KannalaBrandt8::TriangulateMatches(GeometricCamera *pCamera2, const cv::KeyPoint &kp1, const cv::KeyPoint &kp2, const Eigen::Matrix3f& R12, const Eigen::Vector3f& t12, const float sigmaLevel, const float unc, Eigen::Vector3f& p3D,
-                                             float *pz2, float th_cosdisparity) {
+                                             float *pz2) {
 
         Eigen::Vector3f r1 = this->unprojectEig(kp1.pt);
         Eigen::Vector3f r2 = pCamera2->unprojectEig(kp2.pt);
@@ -331,7 +331,7 @@ Eigen::Vector2f KannalaBrandt8::project(const Eigen::Vector3f &v3D) {
 
         const float cosParallaxRays = r1.dot(r21)/(r1.norm() *r21.norm());
 
-        if(cosParallaxRays > th_cosdisparity){
+        if(cosParallaxRays > 0.9998){
             return -1;
         }
 
